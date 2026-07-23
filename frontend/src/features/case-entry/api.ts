@@ -163,7 +163,7 @@ export function buildCaseEntryPayload(draft: ValidatedCaseEntryDraft): CaseEntry
     disruption: {
       disruptionType: draft.disruptionDetails.disruptionType,
       cancellationNoticeTiming: draft.disruptionDetails.cancellationNoticeTiming as CaseEntryPayload["disruption"]["cancellationNoticeTiming"],
-      delayArrivalOutcome: draft.disruptionDetails.delayArrivalOutcome as CaseEntryPayload["disruption"]["delayArrivalOutcome"],
+      finalArrivalOutcome: draft.disruptionDetails.finalArrivalOutcome as CaseEntryPayload["disruption"]["finalArrivalOutcome"],
       gaveUpSeatVoluntarily: draft.disruptionDetails.gaveUpSeatVoluntarily as CaseEntryPayload["disruption"]["gaveUpSeatVoluntarily"],
       deniedBoardingReason: draft.disruptionDetails.deniedBoardingReason as CaseEntryPayload["disruption"]["deniedBoardingReason"],
       airlineMotiveKnown: draft.disruptionMotive.airlineMotiveKnown as CaseEntryPayload["disruption"]["airlineMotiveKnown"],

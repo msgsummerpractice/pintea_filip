@@ -49,7 +49,7 @@ function buildValidDraft(): CaseEntryDraft {
   draft.disruptionDetails = {
     disruptionType: "cancellation",
     cancellationNoticeTiming: "<14 days",
-    delayArrivalOutcome: null,
+    finalArrivalOutcome: "never arrived",
     gaveUpSeatVoluntarily: null,
     deniedBoardingReason: null,
   };

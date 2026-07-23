@@ -48,23 +48,43 @@ export function DisruptionDetailsStep({
         </label>
 
         {disruptionDetails.disruptionType === "cancellation" && (
-          <fieldset className="field">
-            <legend>How many days before cancellation has the airline informed?</legend>
-            {([">14 days", "<14 days", "on flight day"] as const).map((option) => (
-              <label key={option} className="radio-option">
-                <input
-                  checked={disruptionDetails.cancellationNoticeTiming === option}
-                  name="cancellationNoticeTiming"
-                  onChange={() => onChange("cancellationNoticeTiming", option)}
-                  type="radio"
-                />
-                <span>{option}</span>
-              </label>
-            ))}
-            {getError(errors, "disruptionDetails.cancellationNoticeTiming") && (
-              <p className="field-error">{getError(errors, "disruptionDetails.cancellationNoticeTiming")}</p>
-            )}
-          </fieldset>
+          <>
+            <fieldset className="field">
+              <legend>How late arrived to final destination?</legend>
+              {(["<3h", ">3h", "never arrived"] as const).map((option) => (
+                <label key={option} className="radio-option">
+                  <input
+                    checked={disruptionDetails.finalArrivalOutcome === option}
+                    name="finalArrivalOutcome"
+                    onChange={() => onChange("finalArrivalOutcome", option)}
+                    type="radio"
+                  />
+                  <span>{option}</span>
+                </label>
+              ))}
+              {getError(errors, "disruptionDetails.finalArrivalOutcome") && (
+                <p className="field-error">{getError(errors, "disruptionDetails.finalArrivalOutcome")}</p>
+              )}
+            </fieldset>
+
+            <fieldset className="field">
+              <legend>How many days before cancellation has the airline informed?</legend>
+              {([">14 days", "<14 days", "on flight day"] as const).map((option) => (
+                <label key={option} className="radio-option">
+                  <input
+                    checked={disruptionDetails.cancellationNoticeTiming === option}
+                    name="cancellationNoticeTiming"
+                    onChange={() => onChange("cancellationNoticeTiming", option)}
+                    type="radio"
+                  />
+                  <span>{option}</span>
+                </label>
+              ))}
+              {getError(errors, "disruptionDetails.cancellationNoticeTiming") && (
+                <p className="field-error">{getError(errors, "disruptionDetails.cancellationNoticeTiming")}</p>
+              )}
+            </fieldset>
+          </>
         )}
 
         {disruptionDetails.disruptionType === "delay" && (
@@ -73,22 +93,40 @@ export function DisruptionDetailsStep({
             {(["<3h", ">3h", "connection flight lost"] as const).map((option) => (
               <label key={option} className="radio-option">
                 <input
-                  checked={disruptionDetails.delayArrivalOutcome === option}
-                  name="delayArrivalOutcome"
-                  onChange={() => onChange("delayArrivalOutcome", option)}
+                  checked={disruptionDetails.finalArrivalOutcome === option}
+                  name="finalArrivalOutcome"
+                  onChange={() => onChange("finalArrivalOutcome", option)}
                   type="radio"
                 />
                 <span>{option}</span>
               </label>
             ))}
-            {getError(errors, "disruptionDetails.delayArrivalOutcome") && (
-              <p className="field-error">{getError(errors, "disruptionDetails.delayArrivalOutcome")}</p>
+            {getError(errors, "disruptionDetails.finalArrivalOutcome") && (
+              <p className="field-error">{getError(errors, "disruptionDetails.finalArrivalOutcome")}</p>
             )}
           </fieldset>
         )}
 
         {disruptionDetails.disruptionType === "denied_boarding" && (
           <>
+            <fieldset className="field">
+              <legend>How late arrived to final destination?</legend>
+              {(["<3h", ">3h", "never arrived"] as const).map((option) => (
+                <label key={option} className="radio-option">
+                  <input
+                    checked={disruptionDetails.finalArrivalOutcome === option}
+                    name="finalArrivalOutcome"
+                    onChange={() => onChange("finalArrivalOutcome", option)}
+                    type="radio"
+                  />
+                  <span>{option}</span>
+                </label>
+              ))}
+              {getError(errors, "disruptionDetails.finalArrivalOutcome") && (
+                <p className="field-error">{getError(errors, "disruptionDetails.finalArrivalOutcome")}</p>
+              )}
+            </fieldset>
+
             <fieldset className="field">
               <legend>Did you give up your seat voluntarily?</legend>
               {(["yes", "no"] as const).map((option) => (

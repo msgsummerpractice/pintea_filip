@@ -40,7 +40,7 @@ def build_payload() -> dict:
         "disruption": {
             "disruptionType": "cancellation",
             "cancellationNoticeTiming": "<14 days",
-            "delayArrivalOutcome": "",
+            "finalArrivalOutcome": "never arrived",
             "gaveUpSeatVoluntarily": "",
             "deniedBoardingReason": "",
             "airlineMotiveKnown": "no",
@@ -504,7 +504,7 @@ def test_create_case_rolls_back_all_records_when_document_persistence_fails(monk
         "disruption": {
             "disruptionType": "cancellation",
             "cancellationNoticeTiming": "<14 days",
-            "delayArrivalOutcome": "",
+            "finalArrivalOutcome": "never arrived",
             "gaveUpSeatVoluntarily": "",
             "deniedBoardingReason": "",
             "airlineMotiveKnown": "no",
@@ -598,7 +598,7 @@ def test_case_create_api_persists_disruption(mock_calc, tmp_path, settings) -> N
     payload["disruption"] = {
         "disruptionType": "delay",
         "cancellationNoticeTiming": "",
-        "delayArrivalOutcome": ">3h",
+        "finalArrivalOutcome": ">3h",
         "gaveUpSeatVoluntarily": "",
         "deniedBoardingReason": "",
         "airlineMotiveKnown": "yes",

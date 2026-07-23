@@ -122,22 +122,23 @@ export const disruptionDetailsSchema = z.object({
     invalid_type_error: "Select a disruption type.",
   }),
   cancellationNoticeTiming: z.string().nullable(),
-  delayArrivalOutcome: z.string().nullable(),
+  finalArrivalOutcome: z.string().nullable(),
   gaveUpSeatVoluntarily: z.string().nullable(),
   deniedBoardingReason: z.string().nullable(),
 }).superRefine((data, ctx) => {
+  if (!data.finalArrivalOutcome) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Select how late you arrived at the final destination.",
+      path: ["finalArrivalOutcome"],
+    });
+  }
+
   if (data.disruptionType === "cancellation" && !data.cancellationNoticeTiming) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       message: "Select when you were informed about the cancellation.",
       path: ["cancellationNoticeTiming"],
-    });
-  }
-  if (data.disruptionType === "delay" && !data.delayArrivalOutcome) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "Select how late you arrived.",
-      path: ["delayArrivalOutcome"],
     });
   }
   if (data.disruptionType === "denied_boarding" && !data.gaveUpSeatVoluntarily) {

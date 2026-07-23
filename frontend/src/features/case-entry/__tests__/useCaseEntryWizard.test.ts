@@ -46,7 +46,7 @@ function buildValidDraft(): CaseEntryDraft {
   draft.disruptionDetails = {
     disruptionType: "cancellation",
     cancellationNoticeTiming: "<14 days",
-    delayArrivalOutcome: null,
+    finalArrivalOutcome: "never arrived",
     gaveUpSeatVoluntarily: null,
     deniedBoardingReason: null,
   };
@@ -107,7 +107,7 @@ describe("useCaseEntryWizard", () => {
       result.current.setStepData("disruptionDetails", {
         disruptionType: null,
         cancellationNoticeTiming: null,
-        delayArrivalOutcome: null,
+        finalArrivalOutcome: null,
         gaveUpSeatVoluntarily: null,
         deniedBoardingReason: null,
       });

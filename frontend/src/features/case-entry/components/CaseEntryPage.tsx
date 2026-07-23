@@ -224,7 +224,7 @@ export function CaseEntryPage({ initialDraft, submitter }: CaseEntryPageProps = 
               wizard.setStepData("disruptionDetails", () => ({
                 disruptionType: newType,
                 cancellationNoticeTiming: null,
-                delayArrivalOutcome: null,
+                finalArrivalOutcome: null,
                 gaveUpSeatVoluntarily: null,
                 deniedBoardingReason: null,
               }))

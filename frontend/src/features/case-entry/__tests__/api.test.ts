@@ -50,7 +50,7 @@ function buildValidDraft(): CaseEntryDraft {
   draft.disruptionDetails = {
     disruptionType: "cancellation",
     cancellationNoticeTiming: "<14 days",
-    delayArrivalOutcome: null,
+    finalArrivalOutcome: "never arrived",
     gaveUpSeatVoluntarily: null,
     deniedBoardingReason: null,
   };
@@ -142,6 +142,7 @@ describe("case-entry api", () => {
 
     expect(payload.reservationNumber).toBe("ABC123");
     expect(payload.itinerary.problemFlightId).toBe(draft.itinerary.problemFlightId);
+    expect(payload.disruption.finalArrivalOutcome).toBe("never arrived");
     expect(payload.itinerary.connectingFlights[0].plannedDepartureTime).toBe("12:15");
     expect(payload.itinerary.connectingFlights[0].plannedArrivalTime).toBe("14:00");
     expect(formData.get("boarding_pass")).toBe(draft.documents.boardingPass.file);

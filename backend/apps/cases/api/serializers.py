@@ -128,7 +128,7 @@ class CaseDocumentField(serializers.FileField):
 class DisruptionInputSerializer(serializers.Serializer):
     disruptionType = serializers.ChoiceField(choices=["cancellation", "delay", "denied_boarding"])
     cancellationNoticeTiming = serializers.CharField(max_length=30, required=False, allow_blank=True, default="")
-    delayArrivalOutcome = serializers.CharField(max_length=30, required=False, allow_blank=True, default="")
+    finalArrivalOutcome = serializers.CharField(max_length=30, required=False, allow_blank=True, default="")
     gaveUpSeatVoluntarily = serializers.CharField(max_length=5, required=False, allow_blank=True, default="")
     deniedBoardingReason = serializers.CharField(max_length=50, required=False, allow_blank=True, default="")
     airlineMotiveKnown = serializers.CharField(max_length=20, required=False, allow_blank=True, default="")

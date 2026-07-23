@@ -80,16 +80,16 @@ export interface DocumentsInput {
 
 export type DisruptionType = "cancellation" | "delay" | "denied_boarding";
 export type CancellationNoticeTiming = ">14 days" | "<14 days" | "on flight day";
-export type DelayArrivalOutcome = "<3h" | ">3h" | "connection flight lost";
+export type FinalArrivalOutcome = "<3h" | ">3h" | "never arrived" | "connection flight lost";
 export type VoluntarySeatAnswer = "yes" | "no";
 export type DenialReason = "flight_overbooked" | "aggressive_behavior" | "intoxication" | "unspecified_reason";
 export type AirlineMotiveKnown = "yes" | "no" | "i_dont_know";
-export type AirlineMotive = "technical_problem" | "meteorological_conditions" | "strike" | "problems_with_airport" | "crew_problems" | "other_motives";
+export type AirlineMotive = "technical_problem" | "meteorological_conditions" | "strike" | "problems_with_airport" | "other_motives";
 
 export interface DisruptionDetailsInput {
   disruptionType: DisruptionType | null;
   cancellationNoticeTiming: CancellationNoticeTiming | null;
-  delayArrivalOutcome: DelayArrivalOutcome | null;
+  finalArrivalOutcome: FinalArrivalOutcome | null;
   gaveUpSeatVoluntarily: VoluntarySeatAnswer | null;
   deniedBoardingReason: DenialReason | null;
 }
@@ -132,7 +132,7 @@ export interface CaseEntryPayload {
   disruption: {
     disruptionType: DisruptionType;
     cancellationNoticeTiming: CancellationNoticeTiming | null;
-    delayArrivalOutcome: DelayArrivalOutcome | null;
+    finalArrivalOutcome: FinalArrivalOutcome | null;
     gaveUpSeatVoluntarily: VoluntarySeatAnswer | null;
     deniedBoardingReason: DenialReason | null;
     airlineMotiveKnown: AirlineMotiveKnown | null;
@@ -196,7 +196,7 @@ export function createEmptyCaseEntryDraft(): CaseEntryDraft {
     disruptionDetails: {
       disruptionType: null,
       cancellationNoticeTiming: null,
-      delayArrivalOutcome: null,
+      finalArrivalOutcome: null,
       gaveUpSeatVoluntarily: null,
       deniedBoardingReason: null,
     },

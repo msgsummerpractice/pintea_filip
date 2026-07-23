@@ -50,7 +50,7 @@ function buildValidDraft(): CaseEntryDraft {
   draft.disruptionDetails = {
     disruptionType: "cancellation",
     cancellationNoticeTiming: "<14 days",
-    delayArrivalOutcome: null,
+    finalArrivalOutcome: "never arrived",
     gaveUpSeatVoluntarily: null,
     deniedBoardingReason: null,
   };
@@ -191,7 +191,7 @@ describe("disruptionDetailsSchema", () => {
     const result = disruptionDetailsSchema.safeParse({
       disruptionType: "cancellation",
       cancellationNoticeTiming: "<14 days",
-      delayArrivalOutcome: null,
+      finalArrivalOutcome: "never arrived",
       gaveUpSeatVoluntarily: null,
       deniedBoardingReason: null,
     });
@@ -203,7 +203,7 @@ describe("disruptionDetailsSchema", () => {
     const result = disruptionDetailsSchema.safeParse({
       disruptionType: null,
       cancellationNoticeTiming: null,
-      delayArrivalOutcome: null,
+      finalArrivalOutcome: null,
       gaveUpSeatVoluntarily: null,
       deniedBoardingReason: null,
     });
@@ -218,7 +218,7 @@ describe("disruptionDetailsSchema", () => {
     const result = disruptionDetailsSchema.safeParse({
       disruptionType: "cancellation",
       cancellationNoticeTiming: null,
-      delayArrivalOutcome: null,
+      finalArrivalOutcome: "never arrived",
       gaveUpSeatVoluntarily: null,
       deniedBoardingReason: null,
     });
@@ -229,18 +229,48 @@ describe("disruptionDetailsSchema", () => {
     );
   });
 
-  test("requires delay arrival outcome when type is delay", () => {
+  test("requires final arrival outcome when type is delay", () => {
     const result = disruptionDetailsSchema.safeParse({
       disruptionType: "delay",
       cancellationNoticeTiming: null,
-      delayArrivalOutcome: null,
+      finalArrivalOutcome: null,
       gaveUpSeatVoluntarily: null,
       deniedBoardingReason: null,
     });
 
     expect(result.success).toBe(false);
     expect(result.error?.issues.map((issue) => issue.message)).toContain(
-      "Select how late you arrived.",
+      "Select how late you arrived at the final destination.",
+    );
+  });
+
+  test("requires final arrival outcome when type is cancellation", () => {
+    const result = disruptionDetailsSchema.safeParse({
+      disruptionType: "cancellation",
+      cancellationNoticeTiming: "<14 days",
+      finalArrivalOutcome: null,
+      gaveUpSeatVoluntarily: null,
+      deniedBoardingReason: null,
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error?.issues.map((issue) => issue.message)).toContain(
+      "Select how late you arrived at the final destination.",
+    );
+  });
+
+  test("requires final arrival outcome when type is denied_boarding", () => {
+    const result = disruptionDetailsSchema.safeParse({
+      disruptionType: "denied_boarding",
+      cancellationNoticeTiming: null,
+      finalArrivalOutcome: null,
+      gaveUpSeatVoluntarily: "no",
+      deniedBoardingReason: "flight_overbooked",
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error?.issues.map((issue) => issue.message)).toContain(
+      "Select how late you arrived at the final destination.",
     );
   });
 
@@ -248,7 +278,7 @@ describe("disruptionDetailsSchema", () => {
     const result = disruptionDetailsSchema.safeParse({
       disruptionType: "denied_boarding",
       cancellationNoticeTiming: null,
-      delayArrivalOutcome: null,
+      finalArrivalOutcome: "never arrived",
       gaveUpSeatVoluntarily: null,
       deniedBoardingReason: null,
     });

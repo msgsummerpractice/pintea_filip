@@ -98,7 +98,7 @@ def create_case(validated_data: dict[str, Any]) -> Case:
             case=case,
             disruption_type=disruption_data["disruptionType"].upper(),
             cancellation_notice_timing=disruption_data.get("cancellationNoticeTiming", ""),
-            delay_arrival_outcome=disruption_data.get("delayArrivalOutcome", ""),
+            delay_arrival_outcome=disruption_data.get("finalArrivalOutcome", ""),
             gave_up_seat_voluntarily=disruption_data.get("gaveUpSeatVoluntarily", ""),
             denied_boarding_reason=disruption_data.get("deniedBoardingReason", ""),
             airline_motive_known=disruption_data.get("airlineMotiveKnown", ""),

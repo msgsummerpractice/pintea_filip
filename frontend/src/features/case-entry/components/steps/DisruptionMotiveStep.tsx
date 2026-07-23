@@ -16,7 +16,6 @@ const AIRLINE_MOTIVE_OPTIONS: Array<{ value: AirlineMotive; label: string }> = [
   { value: "meteorological_conditions", label: "Meteorological conditions" },
   { value: "strike", label: "Strike" },
   { value: "problems_with_airport", label: "Problems with airport" },
-  { value: "crew_problems", label: "Crew problems" },
   { value: "other_motives", label: "Other motives" },
 ];
 
