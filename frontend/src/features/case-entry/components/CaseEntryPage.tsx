@@ -126,6 +126,30 @@ function formatValidationErrorLabel(path: string): string {
   return formattedSegments.join(" > ");
 }
 
+function hasStepInteraction(step: CaseEntryWizardStepId, draft: CaseEntryDraft): boolean {
+  switch (step) {
+    case "itinerary":
+      return Boolean(
+        draft.itinerary.departureAirport
+        || draft.itinerary.destinationAirport
+        || draft.itinerary.connectingFlights.length > 0
+        || draft.itinerary.problemFlightId,
+      );
+    case "compliance":
+      return draft.compliance.gdprConsentPrimary !== null || draft.compliance.gdprConsentSecondary !== null;
+    case "flightDetails":
+      return Object.values(draft.flightDetails).some((value) => value.trim().length > 0);
+    case "passengerDetails":
+      return Object.values(draft.passengerDetails).some((value) => value.trim().length > 0);
+    case "documents":
+      return Boolean(draft.documents.boardingPass.file || draft.documents.identification.file);
+    case "review":
+      return false;
+    default:
+      return false;
+  }
+}
+
 export function CaseEntryPage({ initialDraft, submitter }: CaseEntryPageProps = {}) {
   const wizard = useCaseEntryWizard({ initialDraft, submitter });
   const [lockedPreviewStepId, setLockedPreviewStepId] = useState<string | null>(null);
@@ -135,7 +159,13 @@ export function CaseEntryPage({ initialDraft, submitter }: CaseEntryPageProps = 
     wizard.currentStep === "review" && wizard.stepValidity.review.isValid;
   const visibleStepId = lockedPreviewStepId ?? wizard.currentStep;
   const visibleLockedStep = lockedSteps.find((step) => step.id === lockedPreviewStepId) ?? null;
-  const currentStepErrors = revealedErrors[wizard.currentStep]
+  const shouldShowCurrentStepErrors =
+    revealedErrors[wizard.currentStep]
+    || (
+      hasStepInteraction(wizard.currentStep, wizard.draft)
+      && !wizard.stepValidity[wizard.currentStep].isValid
+    );
+  const currentStepErrors = shouldShowCurrentStepErrors
     ? wizard.stepValidity[wizard.currentStep].errors
     : {};
 
@@ -335,6 +365,10 @@ export function CaseEntryPage({ initialDraft, submitter }: CaseEntryPageProps = 
               <SubmitErrorBanner error={wizard.submitState.error} />
             )}
 
+            {!visibleLockedStep && showNavigation && !wizard.canGoNext && shouldShowCurrentStepErrors && (
+              <StepGuidanceBanner errors={currentStepErrors} />
+            )}
+
             {!visibleLockedStep && wizard.submitState.status === "success" && (
               <SubmitSuccessBanner submitState={wizard.submitState} />
             )}
@@ -405,6 +439,27 @@ function SubmitSuccessBanner({ submitState }: { submitState: CaseEntrySubmitStat
       {message ? ` ${String(message)}` : ""}
       {status ? ` Status: ${String(status)}.` : ""}
       {reference ? ` Reference: ${String(reference)}.` : ""}
+    </div>
+  );
+}
+
+function StepGuidanceBanner({ errors }: { errors: Record<string, string[]> }) {
+  const validationEntries = Object.entries(errors).filter(([path]) => path !== "general" && path !== "root");
+
+  if (validationEntries.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="notice-banner" role="status">
+      <strong>Complete the highlighted fields to continue.</strong>
+      <ul>
+        {validationEntries.map(([path, messages]) => (
+          <li key={path}>
+            {formatValidationErrorLabel(path)}: {messages.join(" ")}
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
