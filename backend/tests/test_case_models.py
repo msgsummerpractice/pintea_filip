@@ -3,6 +3,7 @@ from datetime import datetime
 from datetime import timezone
 
 import pytest
+from django.contrib.auth import get_user_model
 from django.db import IntegrityError
 from django.db import models
 
@@ -11,7 +12,11 @@ from apps.cases.models import CaseStatus
 from apps.cases.models import DocumentCategory
 from apps.cases.models import FlightLeg
 from apps.cases.models import Passenger
+from apps.cases.models import PassengerAuthState
 from apps.cases.models import UploadedDocument
+
+
+User = get_user_model()
 
 
 def test_case_status_values() -> None:
@@ -81,6 +86,78 @@ def passenger() -> Passenger:
         address="1 Analytical Engine Street",
         postal_code="010101",
     )
+
+
+@pytest.mark.django_db
+def test_passenger_can_link_to_auth_user() -> None:
+    user = User.objects.create_user(
+        username="ada@example.com",
+        email="ada@example.com",
+        password="secret",
+    )
+
+    passenger = Passenger.objects.create(
+        user=user,
+        first_name="Ada",
+        last_name="Lovelace",
+        date_of_birth=date(1990, 12, 10),
+        email="ada@example.com",
+        phone="+40123456789",
+        address="1 Analytical Engine Street",
+        postal_code="010101",
+    )
+
+    assert passenger.user_id == user.id
+    assert list(user.passengers.values_list("pk", flat=True)) == [passenger.pk]
+
+
+@pytest.mark.django_db
+def test_multiple_passengers_can_link_to_same_auth_user() -> None:
+    user = User.objects.create_user(
+        username="ada@example.com",
+        email="ada@example.com",
+        password="secret",
+    )
+
+    first_passenger = Passenger.objects.create(
+        user=user,
+        first_name="Ada",
+        last_name="Lovelace",
+        date_of_birth=date(1990, 12, 10),
+        email="ada@example.com",
+        phone="+40123456789",
+        address="1 Analytical Engine Street",
+        postal_code="010101",
+    )
+    second_passenger = Passenger.objects.create(
+        user=user,
+        first_name="Ada",
+        last_name="Lovelace",
+        date_of_birth=date(1990, 12, 10),
+        email="ada@example.com",
+        phone="+40999999999",
+        address="2 Analytical Engine Street",
+        postal_code="020202",
+    )
+
+    assert list(user.passengers.order_by("pk").values_list("pk", flat=True)) == [
+        first_passenger.pk,
+        second_passenger.pk,
+    ]
+
+
+@pytest.mark.django_db
+def test_passenger_auth_state_defaults_to_forced_password_change() -> None:
+    user = User.objects.create_user(
+        username="grace@example.com",
+        email="grace@example.com",
+        password="secret",
+    )
+
+    state = PassengerAuthState.objects.create(user=user)
+
+    assert state.must_change_password_on_first_login is True
+    assert user.passenger_auth_state.pk == state.pk
 
 
 @pytest.fixture

@@ -8,6 +8,8 @@ from decimal import Decimal
 from unittest.mock import patch
 
 import pytest
+from django.contrib.auth import authenticate
+from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import DatabaseError
 from rest_framework.test import APIClient
@@ -19,9 +21,13 @@ from apps.cases.models import Disruption
 from apps.cases.models import DocumentCategory
 from apps.cases.models import FlightLeg
 from apps.cases.models import Passenger
+from apps.cases.models import PassengerAuthState
 from apps.cases.models import UploadedDocument
 from apps.cases.services import case_creation
 from apps.cases.services.compensation import CompensationResult
+
+
+User = get_user_model()
 
 
 def build_payload() -> dict:
@@ -103,6 +109,13 @@ def build_upload(name: str, content_type: str = "application/pdf") -> SimpleUplo
     return SimpleUploadedFile(name, b"test-file-content", content_type=content_type)
 
 
+def extract_password_from_mail(body: str) -> str:
+    for line in body.splitlines():
+        if line.startswith("Temporary password: "):
+            return line.removeprefix("Temporary password: ").strip()
+    raise AssertionError("Temporary password not found in credential email body.")
+
+
 @pytest.mark.django_db
 @patch("apps.cases.services.case_creation.calculate_compensation")
 def test_case_create_api_persists_case_graph(mock_calc, tmp_path, settings) -> None:
@@ -149,6 +162,227 @@ def test_case_create_api_persists_case_graph(mock_calc, tmp_path, settings) -> N
         DocumentCategory.BOARDING_PASS,
         DocumentCategory.IDENTIFICATION,
     ]
+
+
+@pytest.mark.django_db(transaction=True)
+@patch("apps.cases.services.case_creation.calculate_compensation")
+def test_case_create_api_creates_passenger_auth_user_and_sends_credentials(
+    mock_calc, mailoutbox, tmp_path, settings
+) -> None:
+    mock_calc.return_value = CompensationResult(
+        distance_km=Decimal("2000.00"), compensation_eur=400
+    )
+    settings.MEDIA_ROOT = tmp_path
+
+    response = APIClient().post(
+        "/api/cases/",
+        data={
+            "payload": json.dumps(build_payload()),
+            "boarding_pass": build_upload("boarding-pass.pdf"),
+            "identification": build_upload("passport.jpg", content_type="image/jpeg"),
+        },
+        format="multipart",
+    )
+
+    passenger = Passenger.objects.get()
+    user = User.objects.get(username="ada@example.com")
+    auth_state = PassengerAuthState.objects.get(user=user)
+
+    assert response.status_code == 201
+    assert passenger.user_id == user.id
+    assert len(mailoutbox) == 1
+    password = extract_password_from_mail(mailoutbox[0].body)
+    assert user.check_password(password)
+    assert authenticate(username="ada@example.com", password=password).pk == user.pk
+    assert auth_state.must_change_password_on_first_login is True
+    assert mailoutbox[0].to == ["ada@example.com"]
+
+
+@pytest.mark.django_db(transaction=True)
+@patch("apps.cases.services.case_creation.calculate_compensation")
+def test_case_create_api_reuses_existing_auth_user_without_resending_password(
+    mock_calc, mailoutbox, tmp_path, settings
+) -> None:
+    mock_calc.return_value = CompensationResult(
+        distance_km=Decimal("2000.00"), compensation_eur=400
+    )
+    existing_user = User.objects.create_user(
+        username="existing-ada",
+        email="ada@example.com",
+        password="known-secret",
+    )
+    settings.MEDIA_ROOT = tmp_path
+
+    response = APIClient().post(
+        "/api/cases/",
+        data={
+            "payload": json.dumps(build_payload()),
+            "boarding_pass": build_upload("boarding-pass.pdf"),
+            "identification": build_upload("passport.jpg", content_type="image/jpeg"),
+        },
+        format="multipart",
+    )
+
+    passenger = Passenger.objects.get()
+
+    assert response.status_code == 201
+    assert passenger.user_id == existing_user.id
+    assert len(mailoutbox) == 0
+    assert User.objects.count() == 1
+    assert authenticate(username="ada@example.com", password="known-secret").pk == existing_user.pk
+
+
+@pytest.mark.django_db(transaction=True)
+@patch("apps.cases.services.case_creation.calculate_compensation")
+def test_case_create_api_rolls_back_when_account_provisioning_fails(
+    mock_calc, tmp_path, settings
+) -> None:
+    mock_calc.return_value = CompensationResult(
+        distance_km=Decimal("2000.00"), compensation_eur=400
+    )
+    settings.MEDIA_ROOT = tmp_path
+
+    with patch(
+        "apps.cases.services.passenger_accounts.get_user_model",
+        side_effect=DatabaseError("db unavailable"),
+    ):
+        response = APIClient().post(
+            "/api/cases/",
+            data={
+                "payload": json.dumps(build_payload()),
+                "boarding_pass": build_upload("boarding-pass.pdf"),
+                "identification": build_upload("passport.jpg", content_type="image/jpeg"),
+            },
+            format="multipart",
+        )
+
+    assert response.status_code == 500
+    assert response.json() == {"detail": "Unable to save case at this time."}
+    assert Case.objects.count() == 0
+    assert Passenger.objects.count() == 0
+    assert User.objects.count() == 0
+    assert PassengerAuthState.objects.count() == 0
+
+
+@pytest.mark.django_db(transaction=True)
+@patch("apps.cases.services.case_creation.calculate_compensation")
+def test_case_create_api_returns_safe_error_when_multiple_users_share_same_email(
+    mock_calc, tmp_path, settings
+) -> None:
+    mock_calc.return_value = CompensationResult(
+        distance_km=Decimal("2000.00"), compensation_eur=400
+    )
+    settings.MEDIA_ROOT = tmp_path
+    User.objects.create_user(
+        username="ada-primary",
+        email="ada@example.com",
+        password="known-secret",
+    )
+    User.objects.create_user(
+        username="ada-secondary",
+        email="ada@example.com",
+        password="known-secret",
+    )
+
+    response = APIClient().post(
+        "/api/cases/",
+        data={
+            "payload": json.dumps(build_payload()),
+            "boarding_pass": build_upload("boarding-pass.pdf"),
+            "identification": build_upload("passport.jpg", content_type="image/jpeg"),
+        },
+        format="multipart",
+    )
+
+    assert response.status_code == 500
+    assert response.json() == {"detail": "Unable to save case at this time."}
+    assert Passenger.objects.count() == 0
+    assert Case.objects.count() == 0
+    assert PassengerAuthState.objects.count() == 0
+
+
+@pytest.mark.django_db(transaction=True)
+@patch("apps.cases.services.case_creation.calculate_compensation")
+def test_case_create_api_succeeds_even_when_credential_email_send_fails(
+    mock_calc, tmp_path, settings
+) -> None:
+    mock_calc.return_value = CompensationResult(
+        distance_km=Decimal("2000.00"), compensation_eur=400
+    )
+    settings.MEDIA_ROOT = tmp_path
+
+    with patch(
+        "apps.cases.services.passenger_accounts.send_mail",
+        side_effect=RuntimeError("smtp unavailable"),
+    ):
+        response = APIClient().post(
+            "/api/cases/",
+            data={
+                "payload": json.dumps(build_payload()),
+                "boarding_pass": build_upload("boarding-pass.pdf"),
+                "identification": build_upload("passport.jpg", content_type="image/jpeg"),
+            },
+            format="multipart",
+        )
+
+    assert response.status_code == 201
+    passenger = Passenger.objects.get()
+    user = User.objects.get(username="ada@example.com")
+    assert passenger.user_id == user.id
+    assert Case.objects.count() == 1
+    assert PassengerAuthState.objects.filter(user=user).count() == 1
+
+
+@pytest.mark.django_db(transaction=True)
+@patch("apps.cases.services.case_creation.calculate_compensation")
+def test_case_create_api_reuses_existing_passenger_profile_for_second_submission(
+    mock_calc, mailoutbox, tmp_path, settings
+) -> None:
+    mock_calc.return_value = CompensationResult(
+        distance_km=Decimal("2000.00"), compensation_eur=400
+    )
+    settings.MEDIA_ROOT = tmp_path
+    client = APIClient()
+
+    first_response = client.post(
+        "/api/cases/",
+        data={
+            "payload": json.dumps(build_payload()),
+            "boarding_pass": build_upload("boarding-pass.pdf"),
+            "identification": build_upload("passport.jpg", content_type="image/jpeg"),
+        },
+        format="multipart",
+    )
+    first_case = Case.objects.get(case_id=first_response.json()["caseId"])
+    first_passenger_id = first_case.passenger_id
+
+    second_payload = build_payload()
+    second_payload["reservationNumber"] = "ZXCV9876"
+    second_payload["passenger"]["phone"] = "+40999999999"
+    second_response = client.post(
+        "/api/cases/",
+        data={
+            "payload": json.dumps(second_payload),
+            "boarding_pass": build_upload("boarding-pass-2.pdf"),
+            "identification": build_upload("passport-2.jpg", content_type="image/jpeg"),
+        },
+        format="multipart",
+    )
+
+    second_case = Case.objects.get(case_id=second_response.json()["caseId"])
+    first_passenger = Passenger.objects.get(pk=first_passenger_id)
+    second_passenger = second_case.passenger
+
+    assert first_response.status_code == 201
+    assert second_response.status_code == 201
+    assert Passenger.objects.count() == 2
+    assert User.objects.count() == 1
+    assert PassengerAuthState.objects.count() == 1
+    assert second_case.passenger_id != first_passenger_id
+    assert first_passenger.phone == "+40123456789"
+    assert second_passenger.phone == "+40999999999"
+    assert first_passenger.user_id == second_passenger.user_id
+    assert len(mailoutbox) == 1
 
 
 @pytest.mark.django_db

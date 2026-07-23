@@ -120,6 +120,10 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+AUTHENTICATION_BACKENDS = [
+    "apps.cases.auth_backends.EmailOrUsernameModelBackend",
+]
+
 LANGUAGE_CODE = "en-us"
 TIME_ZONE = "UTC"
 USE_I18N = True
@@ -134,6 +138,7 @@ MEDIA_ROOT = BASE_DIR / "media"
 CORS_ALLOWED_ORIGINS = env_list("CORS_ALLOWED_ORIGINS", default=["http://localhost:5173"])
 
 AIRPORTGAP_API_TOKEN = env("AIRPORTGAP_API_TOKEN", default="") or ""
+DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="noreply@airassist.local") or "noreply@airassist.local"
 
 REST_FRAMEWORK = {
     "DEFAULT_RENDERER_CLASSES": [

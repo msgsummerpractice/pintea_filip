@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from uuid import uuid4
 
+from django.conf import settings
 from django.db import models
 from django.db.models import Q
 
@@ -14,6 +15,13 @@ class CaseStatus(models.TextChoices):
 
 
 class Passenger(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="passengers",
+    )
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100)
     date_of_birth = models.DateField()
@@ -21,6 +29,17 @@ class Passenger(models.Model):
     phone = models.CharField(max_length=32)
     address = models.CharField(max_length=255)
     postal_code = models.CharField(max_length=32)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+
+class PassengerAuthState(models.Model):
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="passenger_auth_state",
+    )
+    must_change_password_on_first_login = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

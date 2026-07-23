@@ -13,6 +13,7 @@ from apps.cases.models import FlightLeg
 from apps.cases.models import Passenger
 from apps.cases.models import UploadedDocument
 from apps.cases.services.compensation import calculate_compensation
+from apps.cases.services.passenger_accounts import provision_passenger_account
 
 
 def create_case(validated_data: dict[str, Any]) -> Case:
@@ -117,5 +118,7 @@ def create_case(validated_data: dict[str, Any]) -> Case:
             orthodromic_distance_km=compensation_result.distance_km,
             compensation_amount_eur=compensation_result.compensation_eur,
         )
+
+        provision_passenger_account(passenger=passenger)
 
     return case
