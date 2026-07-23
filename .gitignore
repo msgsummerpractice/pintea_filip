@@ -1,1 +1,45 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+.venv/
+backend/.venv/
+*.egg
+
+# Environment / secrets
+.env
+backend/.env
+
+# Django
+backend/media/
+backend/staticfiles/
+db.sqlite3
+
+# Pytest
+.pytest_cache/
+backend/.pytest_cache/
+.coverage
+htmlcov/
+
+# Node / Frontend
+node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Airport data cache (large file, regenerate with manage.py fetch_airports)
+backend/data/airports.json
+
+# Project overview docs (not source code)
 project-overview/

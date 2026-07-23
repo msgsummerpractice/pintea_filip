@@ -1,0 +1,32 @@
+:root {
+  color-scheme: light;
+  font-family: "Segoe UI", "Inter", sans-serif;
+  --bg: #f4fbfa;
+  --bg-accent: radial-gradient(circle at top, rgba(31, 191, 143, 0.18), transparent 42%),
+    radial-gradient(circle at left, rgba(23, 132, 214, 0.16), transparent 36%),
+    linear-gradient(180deg, #f7fffd 0%, #edf7fb 100%);
+  --surface: rgba(255, 255, 255, 0.88);
+  --surface-strong: #ffffff;
+  --surface-muted: rgba(244, 251, 250, 0.82);
+  --text: #12313b;
+  --muted: #5f7b82;
+  --accent-blue: #1784d6;
+  --accent-green: #1fbf8f;
+  --accent-blue-deep: #0b5da0;
+  --accent-green-deep: #148867;
+  --border: rgba(18, 49, 59, 0.12);
+  --border-strong: rgba(23, 132, 214, 0.24);
+  --shadow: 0 24px 60px rgba(23, 132, 214, 0.14);
+  --shadow-soft: 0 16px 30px rgba(18, 49, 59, 0.08);
+  --radius-xl: 28px;
+  --radius-lg: 20px;
+  --radius-md: 14px;
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+  --content-width: 1120px;
+}
