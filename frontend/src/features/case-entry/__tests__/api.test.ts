@@ -1,6 +1,7 @@
 import { buildApiUrl } from "../../../lib/http";
 import {
   buildCaseEntryFormData,
+  calculateCompensation,
   searchAirports,
   submitCaseEntry,
 } from "../api";
@@ -148,6 +149,29 @@ describe("case-entry api", () => {
     expect(fetchSpy).toHaveBeenCalledWith(
       buildApiUrl("/cases/"),
       expect.objectContaining({ method: "POST", body: expect.any(FormData) }),
+    );
+  });
+
+  test("calculates compensation from airport codes", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({ distance_km: 1868.42, compensation_eur: 400 }),
+        {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        },
+      ),
+    );
+
+    const result = await calculateCompensation("OTP", "CDG");
+
+    expect(result).toEqual({ distanceKm: 1868.42, compensationEur: 400 });
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/compensation/calculate"),
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ from_airport: "OTP", to_airport: "CDG" }),
+      }),
     );
   });
 });

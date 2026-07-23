@@ -98,3 +98,24 @@ class UploadedDocument(models.Model):
                 name="cases_uploaded_document_category_valid",
             ),
         ]
+
+
+class CompensationCalculation(models.Model):
+    case = models.OneToOneField(
+        Case,
+        on_delete=models.CASCADE,
+        related_name="compensation_calculation",
+    )
+    start_airport_code = models.CharField(max_length=10)
+    final_destination_code = models.CharField(max_length=10)
+    orthodromic_distance_km = models.DecimalField(max_digits=10, decimal_places=2)
+    compensation_amount_eur = models.PositiveSmallIntegerField()
+    calculated_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(compensation_amount_eur__in=[250, 400, 600]),
+                name="cases_compensation_amount_valid",
+            ),
+        ]

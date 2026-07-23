@@ -17,6 +17,11 @@ export interface AirportOption {
   displayLabel: string;
 }
 
+export interface CompensationPreview {
+  distanceKm: number;
+  compensationEur: number;
+}
+
 export interface FlightLegInput {
   flightDate: string;
   flightNumber: string;
@@ -77,6 +82,7 @@ export interface CaseEntryDraft {
   flightDetails: FlightDetailsInput;
   passengerDetails: PassengerDetailsInput;
   documents: DocumentsInput;
+  compensationPreview: CompensationPreview | null;
 }
 
 export interface CaseEntryPayload {
@@ -110,6 +116,10 @@ export interface CaseEntrySubmitResponse {
   status?: string;
   message?: string;
   publicCaseReference?: string | null;
+  compensation?: {
+    distance_km: number;
+    compensation_eur: number;
+  };
   [key: string]: unknown;
 }
 
@@ -172,5 +182,6 @@ export function createEmptyCaseEntryDraft(): CaseEntryDraft {
       boardingPass: { file: null },
       identification: { file: null },
     },
+    compensationPreview: null,
   };
 }

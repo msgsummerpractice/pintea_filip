@@ -46,6 +46,16 @@ export function ReviewSubmitStep({
             {draft.flightDetails.flightNumber || "Flight"} · {draft.flightDetails.airline || "Airline"}
           </p>
         </article>
+
+        {draft.compensationPreview && (
+          <article className="summary-card">
+            <p className="section-card-label">Compensation Estimate</p>
+            <h3>€{draft.compensationPreview.compensationEur}</h3>
+            <p>
+              {draft.compensationPreview.distanceKm.toLocaleString(undefined, { maximumFractionDigits: 0 })} km orthodromic distance
+            </p>
+          </article>
+        )}
       </section>
 
       <section className="review-section-grid">

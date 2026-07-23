@@ -6,10 +6,12 @@ from django.db import transaction
 
 from apps.cases.models import Case
 from apps.cases.models import CaseStatus
+from apps.cases.models import CompensationCalculation
 from apps.cases.models import DocumentCategory
 from apps.cases.models import FlightLeg
 from apps.cases.models import Passenger
 from apps.cases.models import UploadedDocument
+from apps.cases.services.compensation import calculate_compensation
 
 
 def create_case(validated_data: dict[str, Any]) -> Case:
@@ -88,6 +90,18 @@ def create_case(validated_data: dict[str, Any]) -> Case:
             mime_type=getattr(identification, "content_type", "application/octet-stream"),
             file_size_bytes=identification.size,
             file=identification,
+        )
+
+        compensation_result = calculate_compensation(
+            itinerary_data["departureAirport"]["code"],
+            itinerary_data["destinationAirport"]["code"],
+        )
+        CompensationCalculation.objects.create(
+            case=case,
+            start_airport_code=itinerary_data["departureAirport"]["code"],
+            final_destination_code=itinerary_data["destinationAirport"]["code"],
+            orthodromic_distance_km=compensation_result.distance_km,
+            compensation_amount_eur=compensation_result.compensation_eur,
         )
 
     return case

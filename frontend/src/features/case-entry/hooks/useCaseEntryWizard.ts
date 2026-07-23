@@ -13,6 +13,7 @@ import {
   type CaseEntrySubmitError,
   type CaseEntrySubmitResponse,
   type CaseEntryWizardStepId,
+  type CompensationPreview,
   type ConnectingFlightInput,
 } from "../types";
 
@@ -205,6 +206,13 @@ export function useCaseEntryWizard(options: CaseEntryWizardOptions = {}) {
     }
   }
 
+  function setCompensationPreview(preview: CompensationPreview | null) {
+    setDraftState((currentDraft) => ({
+      ...currentDraft,
+      compensationPreview: preview,
+    }));
+  }
+
   function reset() {
     setDraftState(createEmptyCaseEntryDraft());
     setCurrentStep("itinerary");
@@ -229,6 +237,7 @@ export function useCaseEntryWizard(options: CaseEntryWizardOptions = {}) {
     updateConnectingFlight,
     removeConnectingFlight,
     setProblemFlight,
+    setCompensationPreview,
     submit,
     submitState,
     reset,

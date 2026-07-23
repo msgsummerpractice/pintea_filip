@@ -192,9 +192,11 @@ export function CaseEntryPage({ initialDraft, submitter }: CaseEntryPageProps = 
       case "itinerary":
         return (
           <ItineraryStep
+            compensationPreview={wizard.draft.compensationPreview}
             errors={currentStepErrors}
             itinerary={wizard.draft.itinerary}
             onAddConnectingFlight={wizard.addConnectingFlight}
+            onCompensationPreviewChange={wizard.setCompensationPreview}
             onDepartureAirportChange={(airport) =>
               wizard.setStepData("itinerary", (current) => ({
                 ...current,

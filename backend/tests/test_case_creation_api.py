@@ -4,6 +4,8 @@ import json
 from datetime import date
 from datetime import datetime
 from datetime import timezone
+from decimal import Decimal
+from unittest.mock import patch
 
 import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -11,11 +13,13 @@ from rest_framework.test import APIClient
 
 from apps.cases.models import Case
 from apps.cases.models import CaseStatus
+from apps.cases.models import CompensationCalculation
 from apps.cases.models import DocumentCategory
 from apps.cases.models import FlightLeg
 from apps.cases.models import Passenger
 from apps.cases.models import UploadedDocument
 from apps.cases.services import case_creation
+from apps.cases.services.compensation import CompensationResult
 
 
 def build_payload() -> dict:
@@ -88,7 +92,11 @@ def build_upload(name: str, content_type: str = "application/pdf") -> SimpleUplo
 
 
 @pytest.mark.django_db
-def test_case_create_api_persists_case_graph(tmp_path, settings) -> None:
+@patch("apps.cases.services.case_creation.calculate_compensation")
+def test_case_create_api_persists_case_graph(mock_calc, tmp_path, settings) -> None:
+    mock_calc.return_value = CompensationResult(
+        distance_km=Decimal("2000.00"), compensation_eur=400
+    )
     settings.MEDIA_ROOT = tmp_path
 
     response = APIClient().post(
@@ -148,7 +156,11 @@ def test_case_create_api_rejects_missing_primary_gdpr_consent() -> None:
 
 
 @pytest.mark.django_db
-def test_case_create_api_accepts_identification_document_alias(tmp_path, settings) -> None:
+@patch("apps.cases.services.case_creation.calculate_compensation")
+def test_case_create_api_accepts_identification_document_alias(mock_calc, tmp_path, settings) -> None:
+    mock_calc.return_value = CompensationResult(
+        distance_km=Decimal("2000.00"), compensation_eur=400
+    )
     settings.MEDIA_ROOT = tmp_path
 
     response = APIClient().post(
@@ -416,7 +428,11 @@ def test_case_create_api_rejects_date_of_birth_today() -> None:
 
 
 @pytest.mark.django_db
-def test_case_create_api_creates_new_status_without_problem_flight_for_direct_trip(tmp_path, settings) -> None:
+@patch("apps.cases.services.case_creation.calculate_compensation")
+def test_case_create_api_creates_new_status_without_problem_flight_for_direct_trip(mock_calc, tmp_path, settings) -> None:
+    mock_calc.return_value = CompensationResult(
+        distance_km=Decimal("2000.00"), compensation_eur=400
+    )
     settings.MEDIA_ROOT = tmp_path
     payload = build_payload()
     payload["itinerary"]["connectingFlights"] = []
@@ -496,3 +512,34 @@ def test_create_case_rolls_back_all_records_when_document_persistence_fails(monk
     assert Case.objects.count() == 0
     assert FlightLeg.objects.count() == 0
     assert UploadedDocument.objects.count() == 0
+
+
+@pytest.mark.django_db
+@patch("apps.cases.services.case_creation.calculate_compensation")
+def test_case_create_persists_compensation(mock_calc, tmp_path, settings) -> None:
+    settings.MEDIA_ROOT = tmp_path
+    mock_calc.return_value = CompensationResult(
+        distance_km=Decimal("1868.42"), compensation_eur=400
+    )
+
+    response = APIClient().post(
+        "/api/cases/",
+        data={
+            "payload": json.dumps(build_payload()),
+            "boarding_pass": build_upload("boarding-pass.pdf"),
+            "identification": build_upload("passport.jpg", content_type="image/jpeg"),
+        },
+        format="multipart",
+    )
+
+    assert response.status_code == 201
+    body = response.json()
+    assert body["compensation"]["distance_km"] == 1868.42
+    assert body["compensation"]["compensation_eur"] == 400
+
+    case = Case.objects.get()
+    comp = CompensationCalculation.objects.get(case=case)
+    assert comp.start_airport_code == "OTP"
+    assert comp.final_destination_code == "MAD"
+    assert comp.orthodromic_distance_km == Decimal("1868.42")
+    assert comp.compensation_amount_eur == 400

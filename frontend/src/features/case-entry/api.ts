@@ -10,6 +10,7 @@ import type {
   CaseEntryMultipartPayload,
   CaseEntryPayload,
   CaseEntrySubmitResponse,
+  CompensationPreview,
 } from "./types";
 
 interface AirportSearchResponse {
@@ -101,6 +102,29 @@ export function normalizeCaseEntrySubmitError(error: unknown): CaseEntrySubmitEr
         ? extractErrorMessage(errorSource, validationErrors) || error.message
         : extractErrorMessage(errorSource, validationErrors),
     validationErrors,
+  };
+}
+
+interface CompensationCalculateResponse {
+  distance_km: number;
+  compensation_eur: number;
+}
+
+export async function calculateCompensation(
+  fromAirport: string,
+  toAirport: string,
+): Promise<CompensationPreview> {
+  const response = await requestJson<CompensationCalculateResponse>(
+    "/compensation/calculate",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ from_airport: fromAirport, to_airport: toAirport }),
+    },
+  );
+  return {
+    distanceKm: response.distance_km,
+    compensationEur: response.compensation_eur,
   };
 }
 

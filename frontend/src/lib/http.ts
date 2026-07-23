@@ -11,10 +11,15 @@ export class HttpError extends Error {
 }
 
 const apiBaseUrl = (() => {
-  const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim() ?? "/api";
-  return configuredBaseUrl.endsWith("/")
-    ? configuredBaseUrl.slice(0, -1)
-    : configuredBaseUrl;
+  const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim();
+  const fallbackBaseUrl = import.meta.env.DEV ? "http://localhost:8000/api" : "/api";
+  const resolvedBaseUrl = configuredBaseUrl && configuredBaseUrl.length > 0
+    ? configuredBaseUrl
+    : fallbackBaseUrl;
+
+  return resolvedBaseUrl.endsWith("/")
+    ? resolvedBaseUrl.slice(0, -1)
+    : resolvedBaseUrl;
 })();
 
 function buildHeaders(headers?: HeadersInit): Headers {
