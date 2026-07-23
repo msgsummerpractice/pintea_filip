@@ -13,10 +13,11 @@ import type {
 
 import { StepFrame } from "./StepFrame";
 import { ComplianceStep } from "./steps/ComplianceStep";
+import { DisruptionDetailsStep } from "./steps/DisruptionDetailsStep";
+import { DisruptionMotiveStep } from "./steps/DisruptionMotiveStep";
 import { DocumentsStep } from "./steps/DocumentsStep";
 import { FlightDetailsStep } from "./steps/FlightDetailsStep";
 import { ItineraryStep } from "./steps/ItineraryStep";
-import { LockedDisruptionStep } from "./steps/LockedDisruptionStep";
 import { PassengerDetailsStep } from "./steps/PassengerDetailsStep";
 import { ReviewSubmitStep } from "./steps/ReviewSubmitStep";
 
@@ -31,60 +32,48 @@ interface ActiveStepMeta {
   description: string;
 }
 
-interface LockedStepMeta {
-  id: string;
-  label: string;
-  title: string;
-  description: string;
-}
-
 const activeStepMeta: Record<CaseEntryWizardStepId, ActiveStepMeta> = {
   itinerary: {
     label: "Step 1",
     title: "Build the itinerary",
     description: "Capture the airports, the affected route, and any connecting flights tied to the disruption.",
   },
-  compliance: {
+  disruptionDetails: {
     label: "Step 2",
+    title: "Describe the disruption",
+    description: "Select the type of disruption you experienced and answer the follow-up questions.",
+  },
+  disruptionMotive: {
+    label: "Step 3",
+    title: "Disruption motive",
+    description: "Provide details about the airline's stated reason and describe the incident.",
+  },
+  compliance: {
+    label: "Step 4",
     title: "Confirm consent",
     description: "Record the passenger's GDPR permissions before personal and document details are collected.",
   },
   flightDetails: {
-    label: "Step 3",
+    label: "Step 5",
     title: "Add primary flight details",
     description: "Enter the main reservation and scheduled timing that anchors the compensation case.",
   },
   passengerDetails: {
-    label: "Step 4",
+    label: "Step 6",
     title: "Capture passenger details",
     description: "Store the contact identity used for airline outreach and case tracking.",
   },
   documents: {
-    label: "Step 5",
+    label: "Step 7",
     title: "Upload proof documents",
     description: "Attach the boarding pass and the identification document required by intake review.",
   },
   review: {
-    label: "Step 6",
+    label: "Step 8",
     title: "Review and submit",
-    description: "Confirm the collected information, submit the Story 1 payload, and preview upcoming disruption work.",
+    description: "Confirm the collected information and submit.",
   },
 };
-
-const lockedSteps: LockedStepMeta[] = [
-  {
-    id: "disruptionEvidence",
-    label: "CASE_03",
-    title: "Disruption evidence",
-    description: "Delay, cancellation, missed connection, and airline-event capture will unlock here in the next story.",
-  },
-  {
-    id: "disruptionResolution",
-    label: "CASE_03",
-    title: "Resolution path",
-    description: "Compensation reasoning, escalation branching, and airline response handling stay read-only in Story 1.",
-  },
-];
 
 function formatConsent(value: boolean | null): string {
   if (value === true) {
@@ -100,10 +89,6 @@ function formatConsent(value: boolean | null): string {
 
 function formatAirport(airport: AirportOption | null): string {
   return airport?.displayLabel ?? "Not selected";
-}
-
-function isLockedStepId(stepId: string): boolean {
-  return lockedSteps.some((step) => step.id === stepId);
 }
 
 function formatValidationErrorLabel(path: string): string {
@@ -135,6 +120,13 @@ function hasStepInteraction(step: CaseEntryWizardStepId, draft: CaseEntryDraft):
         || draft.itinerary.connectingFlights.length > 0
         || draft.itinerary.problemFlightId,
       );
+    case "disruptionDetails":
+      return draft.disruptionDetails.disruptionType !== null;
+    case "disruptionMotive":
+      return (
+        draft.disruptionMotive.airlineMotiveKnown !== null
+        || draft.disruptionMotive.incidentDescription.trim().length > 0
+      );
     case "compliance":
       return draft.compliance.gdprConsentPrimary !== null || draft.compliance.gdprConsentSecondary !== null;
     case "flightDetails":
@@ -152,13 +144,8 @@ function hasStepInteraction(step: CaseEntryWizardStepId, draft: CaseEntryDraft):
 
 export function CaseEntryPage({ initialDraft, submitter }: CaseEntryPageProps = {}) {
   const wizard = useCaseEntryWizard({ initialDraft, submitter });
-  const [lockedPreviewStepId, setLockedPreviewStepId] = useState<string | null>(null);
   const [revealedErrors, setRevealedErrors] = useState<Record<string, boolean>>({});
 
-  const canPreviewLockedSteps =
-    wizard.currentStep === "review" && wizard.stepValidity.review.isValid;
-  const visibleStepId = lockedPreviewStepId ?? wizard.currentStep;
-  const visibleLockedStep = lockedSteps.find((step) => step.id === lockedPreviewStepId) ?? null;
   const shouldShowCurrentStepErrors =
     revealedErrors[wizard.currentStep]
     || (
@@ -169,26 +156,11 @@ export function CaseEntryPage({ initialDraft, submitter }: CaseEntryPageProps = 
     ? wizard.stepValidity[wizard.currentStep].errors
     : {};
 
-
-
   function revealCurrentStepErrors() {
     setRevealedErrors((current) => ({ ...current, [wizard.currentStep]: true }));
   }
 
-  function clearLockedPreview() {
-    setLockedPreviewStepId(null);
-  }
-
   function handleStepSelection(stepId: string) {
-    if (isLockedStepId(stepId)) {
-      if (canPreviewLockedSteps) {
-        setLockedPreviewStepId(stepId);
-      }
-
-      return;
-    }
-
-    clearLockedPreview();
     wizard.goToStep(stepId as CaseEntryWizardStepId);
   }
 
@@ -198,17 +170,10 @@ export function CaseEntryPage({ initialDraft, submitter }: CaseEntryPageProps = 
       return;
     }
 
-    clearLockedPreview();
     wizard.goNext();
   }
 
   function handleBack() {
-    if (lockedPreviewStepId) {
-      clearLockedPreview();
-      wizard.goToStep("review");
-      return;
-    }
-
     wizard.goBack();
   }
 
@@ -242,6 +207,42 @@ export function CaseEntryPage({ initialDraft, submitter }: CaseEntryPageProps = 
             onProblemFlightChange={wizard.setProblemFlight}
             onRemoveConnectingFlight={wizard.removeConnectingFlight}
             onUpdateConnectingFlight={wizard.updateConnectingFlight}
+          />
+        );
+      case "disruptionDetails":
+        return (
+          <DisruptionDetailsStep
+            disruptionDetails={wizard.draft.disruptionDetails}
+            errors={currentStepErrors}
+            onChange={(field, value) =>
+              wizard.setStepData("disruptionDetails", (current) => ({
+                ...current,
+                [field]: value,
+              }))
+            }
+            onTypeChange={(newType) =>
+              wizard.setStepData("disruptionDetails", () => ({
+                disruptionType: newType,
+                cancellationNoticeTiming: null,
+                delayArrivalOutcome: null,
+                gaveUpSeatVoluntarily: null,
+                deniedBoardingReason: null,
+              }))
+            }
+          />
+        );
+      case "disruptionMotive":
+        return (
+          <DisruptionMotiveStep
+            disruptionType={wizard.draft.disruptionDetails.disruptionType}
+            disruptionMotive={wizard.draft.disruptionMotive}
+            errors={currentStepErrors}
+            onChange={(field, value) =>
+              wizard.setStepData("disruptionMotive", (current) => ({
+                ...current,
+                [field]: value,
+              }))
+            }
           />
         );
       case "compliance":
@@ -299,11 +300,9 @@ export function CaseEntryPage({ initialDraft, submitter }: CaseEntryPageProps = 
       case "review":
         return (
           <ReviewSubmitStep
-            canPreviewLockedSteps={canPreviewLockedSteps}
             draft={wizard.draft}
             formatAirport={formatAirport}
             formatConsent={formatConsent}
-            onPreviewLockedStep={() => setLockedPreviewStepId(lockedSteps[0].id)}
             onSubmit={handleSubmit}
             submitState={wizard.submitState}
           />
@@ -313,16 +312,9 @@ export function CaseEntryPage({ initialDraft, submitter }: CaseEntryPageProps = 
     }
   }
 
-  const frameMeta = visibleLockedStep
-    ? {
-        label: visibleLockedStep.label,
-        title: visibleLockedStep.title,
-        description: visibleLockedStep.description,
-      }
-    : activeStepMeta[wizard.currentStep];
-
-  const showNavigation = !visibleLockedStep && wizard.currentStep !== "review";
-  const showBackButton = wizard.canGoBack || visibleLockedStep !== null;
+  const frameMeta = activeStepMeta[wizard.currentStep];
+  const showNavigation = wizard.currentStep !== "review";
+  const showBackButton = wizard.canGoBack;
 
   return (
     <main className="case-entry-page">
@@ -350,26 +342,22 @@ export function CaseEntryPage({ initialDraft, submitter }: CaseEntryPageProps = 
                 animate={{ opacity: 1, y: 0 }}
                 className="step-stage"
                 initial={{ opacity: 0, y: 18 }}
-                key={visibleStepId}
+                key={wizard.currentStep}
                 transition={{ duration: 0.26, ease: "easeOut" }}
               >
-                {visibleLockedStep ? (
-                  <LockedDisruptionStep step={visibleLockedStep} />
-                ) : (
-                  renderActiveStep()
-                )}
+                {renderActiveStep()}
               </motion.div>
             </AnimatePresence>
 
-            {!visibleLockedStep && wizard.submitState.status === "error" && (
+            {wizard.submitState.status === "error" && (
               <SubmitErrorBanner error={wizard.submitState.error} />
             )}
 
-            {!visibleLockedStep && showNavigation && !wizard.canGoNext && shouldShowCurrentStepErrors && (
+            {showNavigation && !wizard.canGoNext && shouldShowCurrentStepErrors && (
               <StepGuidanceBanner errors={currentStepErrors} />
             )}
 
-            {!visibleLockedStep && wizard.submitState.status === "success" && (
+            {wizard.submitState.status === "success" && (
               <SubmitSuccessBanner submitState={wizard.submitState} />
             )}
 
@@ -381,7 +369,7 @@ export function CaseEntryPage({ initialDraft, submitter }: CaseEntryPageProps = 
                   onClick={handleBack}
                   type="button"
                 >
-                  {visibleLockedStep ? "Back to review" : "Back"}
+                  Back
                 </button>
 
                 {showNavigation && (

@@ -47,6 +47,18 @@ function buildValidDraft(): CaseEntryDraft {
     problemFlightId: null,
   };
   draft.itinerary.problemFlightId = draft.itinerary.connectingFlights[0].id;
+  draft.disruptionDetails = {
+    disruptionType: "cancellation",
+    cancellationNoticeTiming: "<14 days",
+    delayArrivalOutcome: null,
+    gaveUpSeatVoluntarily: null,
+    deniedBoardingReason: null,
+  };
+  draft.disruptionMotive = {
+    airlineMotiveKnown: "no",
+    airlineMotive: null,
+    incidentDescription: "Flight was cancelled without notice.",
+  };
   draft.compliance = {
     gdprConsentPrimary: true,
     gdprConsentSecondary: true,

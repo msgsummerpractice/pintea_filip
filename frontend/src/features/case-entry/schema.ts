@@ -116,6 +116,81 @@ export const itinerarySchema = z
     }
   });
 
+export const disruptionDetailsSchema = z.object({
+  disruptionType: z.enum(["cancellation", "delay", "denied_boarding"], {
+    required_error: "Select a disruption type.",
+    invalid_type_error: "Select a disruption type.",
+  }),
+  cancellationNoticeTiming: z.string().nullable(),
+  delayArrivalOutcome: z.string().nullable(),
+  gaveUpSeatVoluntarily: z.string().nullable(),
+  deniedBoardingReason: z.string().nullable(),
+}).superRefine((data, ctx) => {
+  if (data.disruptionType === "cancellation" && !data.cancellationNoticeTiming) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Select when you were informed about the cancellation.",
+      path: ["cancellationNoticeTiming"],
+    });
+  }
+  if (data.disruptionType === "delay" && !data.delayArrivalOutcome) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Select how late you arrived.",
+      path: ["delayArrivalOutcome"],
+    });
+  }
+  if (data.disruptionType === "denied_boarding" && !data.gaveUpSeatVoluntarily) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Answer whether you gave up your seat voluntarily.",
+      path: ["gaveUpSeatVoluntarily"],
+    });
+  }
+  if (
+    data.disruptionType === "denied_boarding"
+    && data.gaveUpSeatVoluntarily === "no"
+    && !data.deniedBoardingReason
+  ) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Select the reason for denial of boarding.",
+      path: ["deniedBoardingReason"],
+    });
+  }
+});
+
+export const disruptionMotiveSchema = z.object({
+  airlineMotiveKnown: z.string().nullable(),
+  airlineMotive: z.string().nullable(),
+  incidentDescription: z.string().trim().min(1, "Describe the incident.").max(1000, "Maximum 1000 characters."),
+});
+
+const disruptionMotiveStepSchema = z.object({
+  disruptionDetails: z.object({ disruptionType: z.string().nullable() }),
+  disruptionMotive: disruptionMotiveSchema,
+}).superRefine((data, ctx) => {
+  const type = data.disruptionDetails.disruptionType;
+  if ((type === "cancellation" || type === "delay") && !data.disruptionMotive.airlineMotiveKnown) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Answer whether the airline mentioned a disruption motive.",
+      path: ["disruptionMotive", "airlineMotiveKnown"],
+    });
+  }
+  if (
+    (type === "cancellation" || type === "delay")
+    && data.disruptionMotive.airlineMotiveKnown === "yes"
+    && !data.disruptionMotive.airlineMotive
+  ) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Select the motive communicated by the airline.",
+      path: ["disruptionMotive", "airlineMotive"],
+    });
+  }
+});
+
 export const complianceSchema = z.object({
   gdprConsentPrimary: z
     .boolean({ required_error: "Select a GDPR consent option." })
@@ -183,6 +258,8 @@ export const documentsSchema = z.object({
 
 export const caseEntryDraftSchema = z.object({
   itinerary: itinerarySchema,
+  disruptionDetails: disruptionDetailsSchema,
+  disruptionMotive: disruptionMotiveSchema,
   compliance: complianceSchema,
   flightDetails: flightDetailsSchema,
   passengerDetails: passengerDetailsSchema,
@@ -193,6 +270,8 @@ export type ValidatedCaseEntryDraft = z.infer<typeof caseEntryDraftSchema>;
 
 export const caseEntryStepSchemas: Record<CaseEntryWizardStepId, z.ZodTypeAny> = {
   itinerary: z.object({ itinerary: itinerarySchema }),
+  disruptionDetails: z.object({ disruptionDetails: disruptionDetailsSchema }),
+  disruptionMotive: disruptionMotiveStepSchema,
   compliance: z.object({ compliance: complianceSchema }),
   flightDetails: z.object({ flightDetails: flightDetailsSchema }),
   passengerDetails: z.object({ passengerDetails: passengerDetailsSchema }),

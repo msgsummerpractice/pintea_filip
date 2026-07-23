@@ -46,6 +46,18 @@ function buildValidDraft(): CaseEntryDraft {
     problemFlightId: null,
   };
   draft.itinerary.problemFlightId = draft.itinerary.connectingFlights[0].id;
+  draft.disruptionDetails = {
+    disruptionType: "cancellation",
+    cancellationNoticeTiming: "<14 days",
+    delayArrivalOutcome: null,
+    gaveUpSeatVoluntarily: null,
+    deniedBoardingReason: null,
+  };
+  draft.disruptionMotive = {
+    airlineMotiveKnown: "no",
+    airlineMotive: null,
+    incidentDescription: "Flight was cancelled without notice.",
+  };
   draft.compliance = {
     gdprConsentPrimary: true,
     gdprConsentSecondary: false,
@@ -125,7 +137,7 @@ test("shows submit confirmation details when the mocked submit succeeds", async 
 
   render(<CaseEntryPage initialDraft={buildValidDraft()} submitter={submitter} />);
 
-  for (let stepIndex = 0; stepIndex < 5; stepIndex += 1) {
+  for (let stepIndex = 0; stepIndex < 7; stepIndex += 1) {
     await user.click(screen.getByRole("button", { name: /continue to next step/i }));
   }
 
@@ -151,7 +163,7 @@ test("shows structured server validation errors when the mocked submit rejects",
 
   render(<CaseEntryPage initialDraft={buildValidDraft()} submitter={submitter} />);
 
-  for (let stepIndex = 0; stepIndex < 5; stepIndex += 1) {
+  for (let stepIndex = 0; stepIndex < 7; stepIndex += 1) {
     await user.click(screen.getByRole("button", { name: /continue to next step/i }));
   }
 
@@ -162,24 +174,4 @@ test("shows structured server validation errors when the mocked submit rejects",
   expect(alert).toHaveTextContent(/itinerary > problem flight id: select the disrupted connection/i);
   expect(alert).toHaveTextContent(/boarding pass: upload a boarding pass before submitting/i);
   expect(submitter).toHaveBeenCalledTimes(1);
-});
-
-test("shows a locked disruption stage in the flow and allows preview from review", async () => {
-  const user = userEvent.setup();
-
-  render(<CaseEntryPage initialDraft={buildValidDraft()} />);
-
-  for (let stepIndex = 0; stepIndex < 5; stepIndex += 1) {
-    await user.click(screen.getByRole("button", { name: /continue to next step/i }));
-  }
-
-  const previewButton = screen.getByRole("button", {
-    name: /preview case_03 locked steps/i,
-  });
-
-  expect(previewButton).toBeEnabled();
-  await user.click(previewButton);
-
-  expect(screen.getByRole("region", { name: /disruption evidence/i })).toBeInTheDocument();
-  expect(screen.getByLabelText(/locked disruption stage/i)).toBeInTheDocument();
 });

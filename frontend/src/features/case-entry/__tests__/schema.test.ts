@@ -2,6 +2,8 @@ import {
   MAX_CONNECTING_FLIGHTS,
   MAX_UPLOAD_BYTES,
   caseEntryDraftSchema,
+  disruptionDetailsSchema,
+  disruptionMotiveSchema,
 } from "../schema";
 import {
   createDraftId,
@@ -45,6 +47,18 @@ function buildValidDraft(): CaseEntryDraft {
     problemFlightId: null,
   };
   draft.itinerary.problemFlightId = draft.itinerary.connectingFlights[0].id;
+  draft.disruptionDetails = {
+    disruptionType: "cancellation",
+    cancellationNoticeTiming: "<14 days",
+    delayArrivalOutcome: null,
+    gaveUpSeatVoluntarily: null,
+    deniedBoardingReason: null,
+  };
+  draft.disruptionMotive = {
+    airlineMotiveKnown: "no",
+    airlineMotive: null,
+    incidentDescription: "Flight was cancelled without notice.",
+  };
   draft.compliance = {
     gdprConsentPrimary: true,
     gdprConsentSecondary: false,
@@ -168,6 +182,118 @@ describe("caseEntryDraftSchema", () => {
     expect(result.success).toBe(false);
     expect(result.error?.issues.map((issue) => issue.message)).toContain(
       "GDPR consent is required to submit.",
+    );
+  });
+});
+
+describe("disruptionDetailsSchema", () => {
+  test("accepts valid cancellation details", () => {
+    const result = disruptionDetailsSchema.safeParse({
+      disruptionType: "cancellation",
+      cancellationNoticeTiming: "<14 days",
+      delayArrivalOutcome: null,
+      gaveUpSeatVoluntarily: null,
+      deniedBoardingReason: null,
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  test("rejects missing disruption type", () => {
+    const result = disruptionDetailsSchema.safeParse({
+      disruptionType: null,
+      cancellationNoticeTiming: null,
+      delayArrivalOutcome: null,
+      gaveUpSeatVoluntarily: null,
+      deniedBoardingReason: null,
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error?.issues.map((issue) => issue.message)).toContain(
+      "Select a disruption type.",
+    );
+  });
+
+  test("requires cancellation notice timing when type is cancellation", () => {
+    const result = disruptionDetailsSchema.safeParse({
+      disruptionType: "cancellation",
+      cancellationNoticeTiming: null,
+      delayArrivalOutcome: null,
+      gaveUpSeatVoluntarily: null,
+      deniedBoardingReason: null,
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error?.issues.map((issue) => issue.message)).toContain(
+      "Select when you were informed about the cancellation.",
+    );
+  });
+
+  test("requires delay arrival outcome when type is delay", () => {
+    const result = disruptionDetailsSchema.safeParse({
+      disruptionType: "delay",
+      cancellationNoticeTiming: null,
+      delayArrivalOutcome: null,
+      gaveUpSeatVoluntarily: null,
+      deniedBoardingReason: null,
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error?.issues.map((issue) => issue.message)).toContain(
+      "Select how late you arrived.",
+    );
+  });
+
+  test("requires voluntary seat answer when type is denied_boarding", () => {
+    const result = disruptionDetailsSchema.safeParse({
+      disruptionType: "denied_boarding",
+      cancellationNoticeTiming: null,
+      delayArrivalOutcome: null,
+      gaveUpSeatVoluntarily: null,
+      deniedBoardingReason: null,
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error?.issues.map((issue) => issue.message)).toContain(
+      "Answer whether you gave up your seat voluntarily.",
+    );
+  });
+});
+
+describe("disruptionMotiveSchema", () => {
+  test("accepts valid motive data", () => {
+    const result = disruptionMotiveSchema.safeParse({
+      airlineMotiveKnown: "no",
+      airlineMotive: null,
+      incidentDescription: "Flight was cancelled without notice.",
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  test("rejects empty incident description", () => {
+    const result = disruptionMotiveSchema.safeParse({
+      airlineMotiveKnown: "no",
+      airlineMotive: null,
+      incidentDescription: "",
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error?.issues.map((issue) => issue.message)).toContain(
+      "Describe the incident.",
+    );
+  });
+
+  test("rejects incident description exceeding 1000 characters", () => {
+    const result = disruptionMotiveSchema.safeParse({
+      airlineMotiveKnown: "no",
+      airlineMotive: null,
+      incidentDescription: "x".repeat(1001),
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error?.issues.map((issue) => issue.message)).toContain(
+      "Maximum 1000 characters.",
     );
   });
 });

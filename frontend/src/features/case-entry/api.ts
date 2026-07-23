@@ -160,6 +160,16 @@ export function buildCaseEntryPayload(draft: ValidatedCaseEntryDraft): CaseEntry
       connectingFlights: draft.itinerary.connectingFlights,
       problemFlightId: draft.itinerary.problemFlightId,
     },
+    disruption: {
+      disruptionType: draft.disruptionDetails.disruptionType,
+      cancellationNoticeTiming: draft.disruptionDetails.cancellationNoticeTiming as CaseEntryPayload["disruption"]["cancellationNoticeTiming"],
+      delayArrivalOutcome: draft.disruptionDetails.delayArrivalOutcome as CaseEntryPayload["disruption"]["delayArrivalOutcome"],
+      gaveUpSeatVoluntarily: draft.disruptionDetails.gaveUpSeatVoluntarily as CaseEntryPayload["disruption"]["gaveUpSeatVoluntarily"],
+      deniedBoardingReason: draft.disruptionDetails.deniedBoardingReason as CaseEntryPayload["disruption"]["deniedBoardingReason"],
+      airlineMotiveKnown: draft.disruptionMotive.airlineMotiveKnown as CaseEntryPayload["disruption"]["airlineMotiveKnown"],
+      airlineMotive: draft.disruptionMotive.airlineMotive as CaseEntryPayload["disruption"]["airlineMotive"],
+      incidentDescription: draft.disruptionMotive.incidentDescription,
+    },
   };
 }
 

@@ -7,6 +7,7 @@ from django.db import transaction
 from apps.cases.models import Case
 from apps.cases.models import CaseStatus
 from apps.cases.models import CompensationCalculation
+from apps.cases.models import Disruption
 from apps.cases.models import DocumentCategory
 from apps.cases.models import FlightLeg
 from apps.cases.models import Passenger
@@ -90,6 +91,19 @@ def create_case(validated_data: dict[str, Any]) -> Case:
             mime_type=getattr(identification, "content_type", "application/octet-stream"),
             file_size_bytes=identification.size,
             file=identification,
+        )
+
+        disruption_data = validated_data["disruption"]
+        Disruption.objects.create(
+            case=case,
+            disruption_type=disruption_data["disruptionType"].upper(),
+            cancellation_notice_timing=disruption_data.get("cancellationNoticeTiming", ""),
+            delay_arrival_outcome=disruption_data.get("delayArrivalOutcome", ""),
+            gave_up_seat_voluntarily=disruption_data.get("gaveUpSeatVoluntarily", ""),
+            denied_boarding_reason=disruption_data.get("deniedBoardingReason", ""),
+            airline_motive_known=disruption_data.get("airlineMotiveKnown", ""),
+            airline_motive=disruption_data.get("airlineMotive", ""),
+            incident_description=disruption_data["incidentDescription"],
         )
 
         compensation_result = calculate_compensation(

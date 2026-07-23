@@ -4,19 +4,15 @@ import type { AirportOption, CaseEntryDraft } from "../../types";
 interface ReviewSubmitStepProps {
   draft: CaseEntryDraft;
   submitState: CaseEntrySubmitState;
-  canPreviewLockedSteps: boolean;
   onSubmit: () => void | Promise<void>;
-  onPreviewLockedStep: () => void;
   formatAirport: (airport: AirportOption | null) => string;
   formatConsent: (value: boolean | null) => string;
 }
 
 export function ReviewSubmitStep({
-  canPreviewLockedSteps,
   draft,
   formatAirport,
   formatConsent,
-  onPreviewLockedStep,
   onSubmit,
   submitState,
 }: ReviewSubmitStepProps) {
@@ -85,8 +81,7 @@ export function ReviewSubmitStep({
           <p className="section-card-label">Submission</p>
           <h3>Submit the Story 1 intake package</h3>
           <p>
-            The current submit path uses the existing case API contract. Disruption reasoning is
-            intentionally deferred to the locked CASE_03 stages.
+            Review the information above and submit the case when ready.
           </p>
           <div className="review-actions">
             <button
@@ -98,14 +93,6 @@ export function ReviewSubmitStep({
               type="button"
             >
               {submitState.status === "submitting" ? "Submitting…" : "Submit case"}
-            </button>
-            <button
-              className="secondary-button"
-              disabled={!canPreviewLockedSteps}
-              onClick={onPreviewLockedStep}
-              type="button"
-            >
-              Preview CASE_03 locked steps
             </button>
           </div>
         </article>

@@ -14,6 +14,7 @@ from rest_framework.test import APIClient
 from apps.cases.models import Case
 from apps.cases.models import CaseStatus
 from apps.cases.models import CompensationCalculation
+from apps.cases.models import Disruption
 from apps.cases.models import DocumentCategory
 from apps.cases.models import FlightLeg
 from apps.cases.models import Passenger
@@ -35,6 +36,16 @@ def build_payload() -> dict:
             "phone": "+40123456789",
             "address": "1 Analytical Engine Street",
             "postalCode": "010101",
+        },
+        "disruption": {
+            "disruptionType": "cancellation",
+            "cancellationNoticeTiming": "<14 days",
+            "delayArrivalOutcome": "",
+            "gaveUpSeatVoluntarily": "",
+            "deniedBoardingReason": "",
+            "airlineMotiveKnown": "no",
+            "airlineMotive": "",
+            "incidentDescription": "The flight was cancelled without proper notice.",
         },
         "itinerary": {
             "departureAirport": {
@@ -490,6 +501,16 @@ def test_create_case_rolls_back_all_records_when_document_persistence_fails(monk
             ],
             "problemFlightId": "cf-1",
         },
+        "disruption": {
+            "disruptionType": "cancellation",
+            "cancellationNoticeTiming": "<14 days",
+            "delayArrivalOutcome": "",
+            "gaveUpSeatVoluntarily": "",
+            "deniedBoardingReason": "",
+            "airlineMotiveKnown": "no",
+            "airlineMotive": "",
+            "incidentDescription": "The flight was cancelled without proper notice.",
+        },
         "boarding_pass": build_upload("boarding-pass.pdf"),
         "identification": build_upload("passport.jpg", content_type="image/jpeg"),
     }
@@ -543,3 +564,62 @@ def test_case_create_persists_compensation(mock_calc, tmp_path, settings) -> Non
     assert comp.final_destination_code == "MAD"
     assert comp.orthodromic_distance_km == Decimal("1868.42")
     assert comp.compensation_amount_eur == 400
+
+
+@pytest.mark.django_db
+def test_case_create_api_rejects_missing_disruption() -> None:
+    payload = build_payload()
+    del payload["disruption"]
+
+    response = APIClient().post(
+        "/api/cases/",
+        data={
+            "payload": json.dumps(payload),
+            "boarding_pass": build_upload("boarding-pass.pdf"),
+            "identification": build_upload("passport.jpg", content_type="image/jpeg"),
+        },
+        format="multipart",
+    )
+
+    assert response.status_code == 400
+    assert "disruption" in response.json()
+    assert Case.objects.count() == 0
+
+
+@pytest.mark.django_db
+@patch("apps.cases.services.case_creation.calculate_compensation")
+def test_case_create_api_persists_disruption(mock_calc, tmp_path, settings) -> None:
+    mock_calc.return_value = CompensationResult(
+        distance_km=Decimal("2000.00"), compensation_eur=400
+    )
+    settings.MEDIA_ROOT = tmp_path
+
+    payload = build_payload()
+    payload["disruption"] = {
+        "disruptionType": "delay",
+        "cancellationNoticeTiming": "",
+        "delayArrivalOutcome": ">3h",
+        "gaveUpSeatVoluntarily": "",
+        "deniedBoardingReason": "",
+        "airlineMotiveKnown": "yes",
+        "airlineMotive": "strike",
+        "incidentDescription": "Arrived over 3 hours late due to strike.",
+    }
+
+    response = APIClient().post(
+        "/api/cases/",
+        data={
+            "payload": json.dumps(payload),
+            "boarding_pass": build_upload("boarding-pass.pdf"),
+            "identification": build_upload("passport.jpg", content_type="image/jpeg"),
+        },
+        format="multipart",
+    )
+
+    assert response.status_code == 201
+    disruption = Disruption.objects.get()
+    assert disruption.disruption_type == "DELAY"
+    assert disruption.delay_arrival_outcome == ">3h"
+    assert disruption.airline_motive_known == "yes"
+    assert disruption.airline_motive == "strike"
+    assert disruption.incident_description == "Arrived over 3 hours late due to strike."

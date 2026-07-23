@@ -119,3 +119,30 @@ class CompensationCalculation(models.Model):
                 name="cases_compensation_amount_valid",
             ),
         ]
+
+
+class DisruptionType(models.TextChoices):
+    CANCELLATION = "CANCELLATION", "Cancellation"
+    DELAY = "DELAY", "Delay"
+    DENIED_BOARDING = "DENIED_BOARDING", "Denied Boarding"
+
+
+class Disruption(models.Model):
+    case = models.OneToOneField(Case, on_delete=models.CASCADE, related_name="disruption")
+    disruption_type = models.CharField(max_length=20, choices=DisruptionType.choices)
+    cancellation_notice_timing = models.CharField(max_length=30, blank=True, default="")
+    delay_arrival_outcome = models.CharField(max_length=30, blank=True, default="")
+    gave_up_seat_voluntarily = models.CharField(max_length=5, blank=True, default="")
+    denied_boarding_reason = models.CharField(max_length=50, blank=True, default="")
+    airline_motive_known = models.CharField(max_length=20, blank=True, default="")
+    airline_motive = models.CharField(max_length=50, blank=True, default="")
+    incident_description = models.TextField(max_length=1000)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(disruption_type__in=DisruptionType.values),
+                name="cases_disruption_type_valid",
+            ),
+        ]

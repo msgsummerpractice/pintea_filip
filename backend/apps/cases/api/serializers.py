@@ -125,12 +125,24 @@ class CaseDocumentField(serializers.FileField):
         return file
 
 
+class DisruptionInputSerializer(serializers.Serializer):
+    disruptionType = serializers.ChoiceField(choices=["cancellation", "delay", "denied_boarding"])
+    cancellationNoticeTiming = serializers.CharField(max_length=30, required=False, allow_blank=True, default="")
+    delayArrivalOutcome = serializers.CharField(max_length=30, required=False, allow_blank=True, default="")
+    gaveUpSeatVoluntarily = serializers.CharField(max_length=5, required=False, allow_blank=True, default="")
+    deniedBoardingReason = serializers.CharField(max_length=50, required=False, allow_blank=True, default="")
+    airlineMotiveKnown = serializers.CharField(max_length=20, required=False, allow_blank=True, default="")
+    airlineMotive = serializers.CharField(max_length=50, required=False, allow_blank=True, default="")
+    incidentDescription = serializers.CharField(max_length=1000)
+
+
 class CaseCreateRequestSerializer(serializers.Serializer):
     reservationNumber = serializers.CharField(max_length=50)
     gdprConsentPrimary = serializers.BooleanField()
     gdprConsentSecondary = serializers.BooleanField()
     passenger = PassengerInputSerializer()
     itinerary = ItineraryInputSerializer()
+    disruption = DisruptionInputSerializer()
     boarding_pass = CaseDocumentField()
     identification = CaseDocumentField()
 

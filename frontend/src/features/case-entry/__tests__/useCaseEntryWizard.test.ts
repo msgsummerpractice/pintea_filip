@@ -43,6 +43,18 @@ function buildValidDraft(): CaseEntryDraft {
     problemFlightId: null,
   };
   draft.itinerary.problemFlightId = draft.itinerary.connectingFlights[0].id;
+  draft.disruptionDetails = {
+    disruptionType: "cancellation",
+    cancellationNoticeTiming: "<14 days",
+    delayArrivalOutcome: null,
+    gaveUpSeatVoluntarily: null,
+    deniedBoardingReason: null,
+  };
+  draft.disruptionMotive = {
+    airlineMotiveKnown: "no",
+    airlineMotive: null,
+    incidentDescription: "Flight was cancelled without notice.",
+  };
   draft.compliance = {
     gdprConsentPrimary: true,
     gdprConsentSecondary: false,
@@ -89,12 +101,15 @@ describe("useCaseEntryWizard", () => {
       result.current.goNext();
     });
 
-    expect(result.current.currentStep).toBe("compliance");
+    expect(result.current.currentStep).toBe("disruptionDetails");
 
     act(() => {
-      result.current.setStepData("compliance", {
-        gdprConsentPrimary: false,
-        gdprConsentSecondary: false,
+      result.current.setStepData("disruptionDetails", {
+        disruptionType: null,
+        cancellationNoticeTiming: null,
+        delayArrivalOutcome: null,
+        gaveUpSeatVoluntarily: null,
+        deniedBoardingReason: null,
       });
     });
 
@@ -104,7 +119,7 @@ describe("useCaseEntryWizard", () => {
       result.current.goNext();
     });
 
-    expect(result.current.currentStep).toBe("compliance");
+    expect(result.current.currentStep).toBe("disruptionDetails");
   });
 
   test("manages connecting flight helpers inside wizard state", () => {

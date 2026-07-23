@@ -1,5 +1,7 @@
 export const CASE_ENTRY_WIZARD_STEPS = [
   "itinerary",
+  "disruptionDetails",
+  "disruptionMotive",
   "compliance",
   "flightDetails",
   "passengerDetails",
@@ -76,8 +78,32 @@ export interface DocumentsInput {
   identification: UploadField;
 }
 
+export type DisruptionType = "cancellation" | "delay" | "denied_boarding";
+export type CancellationNoticeTiming = ">14 days" | "<14 days" | "on flight day";
+export type DelayArrivalOutcome = "<3h" | ">3h" | "connection flight lost";
+export type VoluntarySeatAnswer = "yes" | "no";
+export type DenialReason = "flight_overbooked" | "aggressive_behavior" | "intoxication" | "unspecified_reason";
+export type AirlineMotiveKnown = "yes" | "no" | "i_dont_know";
+export type AirlineMotive = "technical_problem" | "meteorological_conditions" | "strike" | "problems_with_airport" | "crew_problems" | "other_motives";
+
+export interface DisruptionDetailsInput {
+  disruptionType: DisruptionType | null;
+  cancellationNoticeTiming: CancellationNoticeTiming | null;
+  delayArrivalOutcome: DelayArrivalOutcome | null;
+  gaveUpSeatVoluntarily: VoluntarySeatAnswer | null;
+  deniedBoardingReason: DenialReason | null;
+}
+
+export interface DisruptionMotiveInput {
+  airlineMotiveKnown: AirlineMotiveKnown | null;
+  airlineMotive: AirlineMotive | null;
+  incidentDescription: string;
+}
+
 export interface CaseEntryDraft {
   itinerary: ItineraryInput;
+  disruptionDetails: DisruptionDetailsInput;
+  disruptionMotive: DisruptionMotiveInput;
   compliance: ConsentState;
   flightDetails: FlightDetailsInput;
   passengerDetails: PassengerDetailsInput;
@@ -102,6 +128,16 @@ export interface CaseEntryPayload {
     };
     connectingFlights: ConnectingFlightInput[];
     problemFlightId: string | null;
+  };
+  disruption: {
+    disruptionType: DisruptionType;
+    cancellationNoticeTiming: CancellationNoticeTiming | null;
+    delayArrivalOutcome: DelayArrivalOutcome | null;
+    gaveUpSeatVoluntarily: VoluntarySeatAnswer | null;
+    deniedBoardingReason: DenialReason | null;
+    airlineMotiveKnown: AirlineMotiveKnown | null;
+    airlineMotive: AirlineMotive | null;
+    incidentDescription: string;
   };
 }
 
@@ -156,6 +192,18 @@ export function createEmptyCaseEntryDraft(): CaseEntryDraft {
       destinationAirport: null,
       connectingFlights: [],
       problemFlightId: null,
+    },
+    disruptionDetails: {
+      disruptionType: null,
+      cancellationNoticeTiming: null,
+      delayArrivalOutcome: null,
+      gaveUpSeatVoluntarily: null,
+      deniedBoardingReason: null,
+    },
+    disruptionMotive: {
+      airlineMotiveKnown: null,
+      airlineMotive: null,
+      incidentDescription: "",
     },
     compliance: {
       gdprConsentPrimary: null,
