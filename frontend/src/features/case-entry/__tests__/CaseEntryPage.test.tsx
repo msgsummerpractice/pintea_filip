@@ -130,9 +130,10 @@ test("caps connecting flights at four entries", async () => {
 test("shows submit confirmation details when the mocked submit succeeds", async () => {
   const user = userEvent.setup();
   const submitter = vi.fn().mockResolvedValue({
-    status: "QUEUED",
+    status: "NEW",
     message: "Your intake package is ready for review.",
-    publicCaseReference: "AA-2048",
+    caseId: "CASE-ABC123DEF456",
+    createdAt: "2026-07-23T15:30:00+00:00",
   });
 
   render(<CaseEntryPage initialDraft={buildValidDraft()} submitter={submitter} />);
@@ -145,8 +146,8 @@ test("shows submit confirmation details when the mocked submit succeeds", async 
 
   expect(await screen.findByRole("status")).toHaveTextContent(/case submitted successfully/i);
   expect(screen.getByRole("status")).toHaveTextContent(/your intake package is ready for review/i);
-  expect(screen.getByRole("status")).toHaveTextContent(/status: queued/i);
-  expect(screen.getByRole("status")).toHaveTextContent(/reference: aa-2048/i);
+  expect(screen.getByRole("status")).toHaveTextContent(/status: new/i);
+  expect(screen.getByRole("status")).toHaveTextContent(/case id: case-abc123def456/i);
   expect(submitter).toHaveBeenCalledTimes(1);
 });
 

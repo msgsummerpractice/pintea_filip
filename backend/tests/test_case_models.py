@@ -25,6 +25,7 @@ def test_case_status_values() -> None:
 
 def test_case_default_status_and_vocabulary_constraints_are_configured() -> None:
     assert Case._meta.get_field("status").default == CaseStatus.NEW
+    assert Case._meta.get_field("assigned_colleague").default == ""
 
     constraints = {constraint.name: constraint for constraint in Case._meta.constraints}
     status_constraint = constraints["cases_case_status_valid"]
@@ -33,6 +34,21 @@ def test_case_default_status_and_vocabulary_constraints_are_configured() -> None
     document_constraints = {constraint.name: constraint for constraint in UploadedDocument._meta.constraints}
     document_constraint = document_constraints["cases_uploaded_document_category_valid"]
     assert isinstance(document_constraint, models.CheckConstraint)
+
+
+@pytest.mark.django_db
+def test_case_generates_business_identifier_and_empty_colleague_assignment(passenger: Passenger) -> None:
+    created_case = Case.objects.create(
+        passenger=passenger,
+        reservation_number="ABC123",
+        status=CaseStatus.NEW,
+        gdpr_consent_primary=True,
+        gdpr_consent_secondary=True,
+    )
+
+    assert created_case.case_id.startswith("CASE-")
+    assert len(created_case.case_id) == 17
+    assert created_case.assigned_colleague == ""
 
 
 def test_flight_leg_constraints_support_ordering_and_single_problem_flight() -> None:

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 
+from django.db import DatabaseError
 from rest_framework import parsers
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
@@ -69,11 +70,18 @@ class CaseCreateView(APIView):
                 {"detail": str(exc)},
                 status=status.HTTP_503_SERVICE_UNAVAILABLE,
             )
+        except DatabaseError:
+            return Response(
+                {"detail": "Unable to save case at this time."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
         compensation = case.compensation_calculation
         return Response(
             {
-                "id": case.pk,
+                "id": case.case_id,
+                "caseId": case.case_id,
+                "createdAt": case.created_at.isoformat(),
                 "status": case.status,
                 "compensation": {
                     "distance_km": float(compensation.orthodromic_distance_km),

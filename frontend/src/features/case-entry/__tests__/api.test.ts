@@ -163,13 +163,17 @@ describe("case-entry api", () => {
   test("submits the typed case payload to the planned cases endpoint", async () => {
     const draft = buildValidDraft();
     const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(JSON.stringify({ id: 42, status: "NEW" }), {
-        status: 200,
+      new Response(JSON.stringify({ id: "CASE-ABC123DEF456", caseId: "CASE-ABC123DEF456", status: "NEW" }), {
+        status: 201,
         headers: { "content-type": "application/json" },
       }),
     );
 
-    await expect(submitCaseEntry(draft)).resolves.toEqual({ id: 42, status: "NEW" });
+    await expect(submitCaseEntry(draft)).resolves.toEqual({
+      id: "CASE-ABC123DEF456",
+      caseId: "CASE-ABC123DEF456",
+      status: "NEW",
+    });
     expect(fetchSpy).toHaveBeenCalledWith(
       buildApiUrl("/cases/"),
       expect.objectContaining({ method: "POST", body: expect.any(FormData) }),

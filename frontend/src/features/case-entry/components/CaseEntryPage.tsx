@@ -419,14 +419,14 @@ function SubmitErrorBanner({ error }: { error: CaseEntrySubmitError | null }) {
 function SubmitSuccessBanner({ submitState }: { submitState: CaseEntrySubmitState }) {
   const message = submitState.response?.message;
   const status = submitState.response?.status;
-  const reference = submitState.response?.publicCaseReference;
+  const reference = submitState.response?.caseId ?? submitState.response?.publicCaseReference ?? submitState.response?.id;
 
   return (
     <div className="notice-banner notice-banner-success" role="status">
       <strong>Case submitted successfully.</strong>
       {message ? ` ${String(message)}` : ""}
       {status ? ` Status: ${String(status)}.` : ""}
-      {reference ? ` Reference: ${String(reference)}.` : ""}
+      {reference ? ` Case ID: ${String(reference)}.` : ""}
     </div>
   );
 }

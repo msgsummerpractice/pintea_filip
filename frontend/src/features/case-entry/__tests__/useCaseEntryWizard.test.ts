@@ -158,7 +158,7 @@ describe("useCaseEntryWizard", () => {
   });
 
   test("submits only after the full draft validates", async () => {
-    const submitter = vi.fn().mockResolvedValue({ id: 99, status: "NEW" });
+    const submitter = vi.fn().mockResolvedValue({ id: "CASE-ABC123DEF456", caseId: "CASE-ABC123DEF456", status: "NEW" });
     const { result } = renderHook(() => useCaseEntryWizard({ submitter }));
 
     await act(async () => {
@@ -179,6 +179,10 @@ describe("useCaseEntryWizard", () => {
 
     expect(submitter).toHaveBeenCalledTimes(1);
     expect(result.current.submitState.status).toBe("success");
-    expect(result.current.submitState.response).toEqual({ id: 99, status: "NEW" });
+    expect(result.current.submitState.response).toEqual({
+      id: "CASE-ABC123DEF456",
+      caseId: "CASE-ABC123DEF456",
+      status: "NEW",
+    });
   });
 });

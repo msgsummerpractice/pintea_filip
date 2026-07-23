@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from uuid import uuid4
+
 from django.db import models
 from django.db.models import Q
 
@@ -23,9 +25,15 @@ class Passenger(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
 
+def generate_case_id() -> str:
+    return f"CASE-{uuid4().hex[:12].upper()}"
+
+
 class Case(models.Model):
+    case_id = models.CharField(max_length=17, unique=True, default=generate_case_id, editable=False)
     passenger = models.ForeignKey(Passenger, on_delete=models.PROTECT, related_name="cases")
     reservation_number = models.CharField(max_length=50)
+    assigned_colleague = models.CharField(max_length=255, blank=True, default="")
     status = models.CharField(max_length=16, choices=CaseStatus.choices, default=CaseStatus.NEW)
     gdpr_consent_primary = models.BooleanField()
     gdpr_consent_secondary = models.BooleanField()

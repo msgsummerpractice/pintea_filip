@@ -9,6 +9,7 @@ from unittest.mock import patch
 
 import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.db import DatabaseError
 from rest_framework.test import APIClient
 
 from apps.cases.models import Case
@@ -129,6 +130,11 @@ def test_case_create_api_persists_case_graph(mock_calc, tmp_path, settings) -> N
     documents = list(UploadedDocument.objects.order_by("document_category"))
 
     assert created_case.passenger_id == passenger.pk
+    assert response.json()["id"] == created_case.case_id
+    assert response.json()["caseId"] == created_case.case_id
+    assert response.json()["createdAt"] == created_case.created_at.isoformat()
+    assert created_case.case_id.startswith("CASE-")
+    assert created_case.assigned_colleague == ""
     assert created_case.reservation_number == "ABCD1234"
     assert created_case.gdpr_consent_primary is True
     assert created_case.gdpr_consent_secondary is False
@@ -623,3 +629,22 @@ def test_case_create_api_persists_disruption(mock_calc, tmp_path, settings) -> N
     assert disruption.airline_motive_known == "yes"
     assert disruption.airline_motive == "strike"
     assert disruption.incident_description == "Arrived over 3 hours late due to strike."
+
+
+@pytest.mark.django_db
+@patch("apps.cases.services.case_creation.Case.objects.create", side_effect=DatabaseError("db unavailable"))
+def test_case_create_api_returns_safe_error_when_persistence_fails(_mock_create) -> None:
+    response = APIClient().post(
+        "/api/cases/",
+        data={
+            "payload": json.dumps(build_payload()),
+            "boarding_pass": build_upload("boarding-pass.pdf"),
+            "identification": build_upload("passport.jpg", content_type="image/jpeg"),
+        },
+        format="multipart",
+    )
+
+    assert response.status_code == 500
+    assert response.json() == {"detail": "Unable to save case at this time."}
+    assert Passenger.objects.count() == 0
+    assert Case.objects.count() == 0
