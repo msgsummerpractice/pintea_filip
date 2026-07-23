@@ -139,6 +139,17 @@ CORS_ALLOWED_ORIGINS = env_list("CORS_ALLOWED_ORIGINS", default=["http://localho
 
 AIRPORTGAP_API_TOKEN = env("AIRPORTGAP_API_TOKEN", default="") or ""
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="noreply@airassist.local") or "noreply@airassist.local"
+EMAIL_BACKEND = env(
+    "EMAIL_BACKEND",
+    default="django.core.mail.backends.console.EmailBackend" if DEBUG else "django.core.mail.backends.smtp.EmailBackend",
+) or ("django.core.mail.backends.console.EmailBackend" if DEBUG else "django.core.mail.backends.smtp.EmailBackend")
+EMAIL_HOST = env("EMAIL_HOST", default="localhost") or "localhost"
+EMAIL_PORT = int(env("EMAIL_PORT", default="25") or "25")
+EMAIL_HOST_USER = env("EMAIL_HOST_USER", default="") or ""
+EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="") or ""
+EMAIL_USE_TLS = env_bool("EMAIL_USE_TLS", default=False)
+EMAIL_USE_SSL = env_bool("EMAIL_USE_SSL", default=False)
+EMAIL_TIMEOUT = int(env("EMAIL_TIMEOUT", default="15") or "15")
 
 REST_FRAMEWORK = {
     "DEFAULT_RENDERER_CLASSES": [
