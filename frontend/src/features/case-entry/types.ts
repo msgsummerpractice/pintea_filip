@@ -131,12 +131,12 @@ export interface CaseEntryPayload {
   };
   disruption: {
     disruptionType: DisruptionType;
-    cancellationNoticeTiming: CancellationNoticeTiming | null;
-    finalArrivalOutcome: FinalArrivalOutcome | null;
-    gaveUpSeatVoluntarily: VoluntarySeatAnswer | null;
-    deniedBoardingReason: DenialReason | null;
-    airlineMotiveKnown: AirlineMotiveKnown | null;
-    airlineMotive: AirlineMotive | null;
+    cancellationNoticeTiming: string;
+    finalArrivalOutcome: string;
+    gaveUpSeatVoluntarily: string;
+    deniedBoardingReason: string;
+    airlineMotiveKnown: string;
+    airlineMotive: string;
     incidentDescription: string;
   };
 }

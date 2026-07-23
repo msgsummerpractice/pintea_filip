@@ -87,6 +87,10 @@ function extractErrorMessage(error: unknown, validationErrors: Record<string, st
   return "Unable to submit the case.";
 }
 
+function emptyIfNull<T extends string>(value: T | null): T | "" {
+  return value ?? "";
+}
+
 export function normalizeCaseEntrySubmitError(error: unknown): CaseEntrySubmitError {
   const errorSource =
     error instanceof Error && "body" in error
@@ -162,12 +166,12 @@ export function buildCaseEntryPayload(draft: ValidatedCaseEntryDraft): CaseEntry
     },
     disruption: {
       disruptionType: draft.disruptionDetails.disruptionType,
-      cancellationNoticeTiming: draft.disruptionDetails.cancellationNoticeTiming as CaseEntryPayload["disruption"]["cancellationNoticeTiming"],
-      finalArrivalOutcome: draft.disruptionDetails.finalArrivalOutcome as CaseEntryPayload["disruption"]["finalArrivalOutcome"],
-      gaveUpSeatVoluntarily: draft.disruptionDetails.gaveUpSeatVoluntarily as CaseEntryPayload["disruption"]["gaveUpSeatVoluntarily"],
-      deniedBoardingReason: draft.disruptionDetails.deniedBoardingReason as CaseEntryPayload["disruption"]["deniedBoardingReason"],
-      airlineMotiveKnown: draft.disruptionMotive.airlineMotiveKnown as CaseEntryPayload["disruption"]["airlineMotiveKnown"],
-      airlineMotive: draft.disruptionMotive.airlineMotive as CaseEntryPayload["disruption"]["airlineMotive"],
+      cancellationNoticeTiming: emptyIfNull(draft.disruptionDetails.cancellationNoticeTiming),
+      finalArrivalOutcome: emptyIfNull(draft.disruptionDetails.finalArrivalOutcome),
+      gaveUpSeatVoluntarily: emptyIfNull(draft.disruptionDetails.gaveUpSeatVoluntarily),
+      deniedBoardingReason: emptyIfNull(draft.disruptionDetails.deniedBoardingReason),
+      airlineMotiveKnown: emptyIfNull(draft.disruptionMotive.airlineMotiveKnown),
+      airlineMotive: emptyIfNull(draft.disruptionMotive.airlineMotive),
       incidentDescription: draft.disruptionMotive.incidentDescription,
     },
   };

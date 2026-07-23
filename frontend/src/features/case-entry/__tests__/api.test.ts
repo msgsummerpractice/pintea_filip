@@ -149,6 +149,17 @@ describe("case-entry api", () => {
     expect(formData.get("identification")).toBe(draft.documents.identification.file);
   });
 
+  test("serializes unused disruption answers as empty strings", () => {
+    const draft = buildValidDraft();
+    const formData = buildCaseEntryFormData(draft);
+
+    const payload = JSON.parse(String(formData.get("payload")));
+
+    expect(payload.disruption.gaveUpSeatVoluntarily).toBe("");
+    expect(payload.disruption.deniedBoardingReason).toBe("");
+    expect(payload.disruption.airlineMotive).toBe("");
+  });
+
   test("submits the typed case payload to the planned cases endpoint", async () => {
     const draft = buildValidDraft();
     const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
