@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { RouterProvider, createMemoryRouter } from "react-router-dom";
+import { MemoryRouter, RouterProvider, createMemoryRouter } from "react-router-dom";
 
 import { router as appRouter } from "../../../app/router";
 import { AuthProvider } from "../../auth/AuthProvider";
@@ -158,13 +158,22 @@ test("logged-in passengers see their cases and a create new case button", async 
       ),
     );
 
-  const router = createMemoryRouter(appRouter.routes, {
-    initialEntries: ["/"],
-  });
+  const draft = buildValidDraft();
+  draft.passengerDetails = {
+    firstName: "",
+    lastName: "",
+    dateOfBirth: "",
+    email: "",
+    phone: "",
+    address: "",
+    postalCode: "",
+  };
 
   render(
     <AuthProvider>
-      <RouterProvider router={router} />
+      <MemoryRouter>
+        <CaseEntryPage initialDraft={draft} />
+      </MemoryRouter>
     </AuthProvider>,
   );
 
@@ -173,6 +182,12 @@ test("logged-in passengers see their cases and a create new case button", async 
   expect(screen.queryByRole("region", { name: /add your journey/i })).not.toBeInTheDocument();
   await user.click(screen.getByRole("button", { name: /create new case/i }));
   expect(screen.getByRole("region", { name: /add your journey/i })).toBeInTheDocument();
+  for (let stepIndex = 0; stepIndex < 5; stepIndex += 1) {
+    await user.click(screen.getByRole("button", { name: /continue to next step/i }));
+  }
+  expect(screen.getByLabelText(/first name/i)).toHaveValue("Pat");
+  expect(screen.getByLabelText(/last name/i)).toHaveValue("Passenger");
+  expect(screen.getByLabelText(/email/i)).toHaveValue("passenger@example.com");
 });
 
 test("keeps the next button disabled until the current step is valid", () => {

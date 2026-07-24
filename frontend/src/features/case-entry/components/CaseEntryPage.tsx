@@ -38,6 +38,19 @@ interface ActiveStepMeta {
   description: string;
 }
 
+function splitDisplayName(name: string): { firstName: string; lastName: string } {
+  const trimmedName = name.trim();
+  if (!trimmedName) {
+    return { firstName: "", lastName: "" };
+  }
+
+  const [firstName, ...rest] = trimmedName.split(/\s+/);
+  return {
+    firstName,
+    lastName: rest.join(" "),
+  };
+}
+
 const activeStepMeta: Record<CaseEntryWizardStepId, ActiveStepMeta> = {
   itinerary: {
     label: "Step 1",
@@ -200,6 +213,20 @@ export function CaseEntryPage({ initialDraft, submitter }: CaseEntryPageProps = 
       cancelled = true;
     };
   }, [isLoggedInPassenger, successfulResponse]);
+
+  useEffect(() => {
+    if (!isLoggedInPassenger || !auth?.user || !showNewCaseForm) {
+      return;
+    }
+
+    const { firstName, lastName } = splitDisplayName(auth.user.name);
+    wizard.setStepData("passengerDetails", (current) => ({
+      ...current,
+      firstName: current.firstName || firstName,
+      lastName: current.lastName || lastName,
+      email: current.email || auth.user.email,
+    }));
+  }, [auth?.user, isLoggedInPassenger, showNewCaseForm]);
 
   function revealCurrentStepErrors() {
     setRevealedErrors((current) => ({ ...current, [wizard.currentStep]: true }));
