@@ -10,10 +10,10 @@ import "./app/styles/global.css";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <App>
-      <AuthProvider>
+    <AuthProvider>
+      <App>
         <RouterProvider router={router} />
-      </AuthProvider>
-    </App>
+      </App>
+    </AuthProvider>
   </React.StrictMode>,
 );

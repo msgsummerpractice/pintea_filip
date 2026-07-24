@@ -2,7 +2,6 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useState } from "react";
 
 import { useOptionalAuth } from "../../auth/AuthProvider";
-import { SessionActions } from "../../auth/components/SessionActions";
 import { fetchCaseList } from "../../case-list/api";
 import type { CaseListRow } from "../../case-list/types";
 import { HttpError } from "../../../lib/http";
@@ -546,7 +545,6 @@ export function CaseEntryPage({ initialDraft, submitter }: CaseEntryPageProps = 
         transition={{ duration: 0.4, ease: "easeOut" }}
       >
         <div className="case-entry-hero wizard-hero">
-          <SessionActions />
           {isLoggedInPassenger ? (
             <section className="passenger-case-overview" aria-labelledby="my-cases-title">
               <div className="new-user-heading-row">

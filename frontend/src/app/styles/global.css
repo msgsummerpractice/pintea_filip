@@ -46,6 +46,183 @@ select {
 
 .app-shell {
   min-height: 100vh;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+}
+
+.app-header {
+  background: rgba(247, 255, 253, 0.9);
+  border-bottom: 1px solid rgba(18, 49, 59, 0.08);
+}
+
+.app-header-inner,
+.app-footer-inner {
+  width: min(calc(100% - 2rem), var(--content-width));
+  margin: 0 auto;
+}
+
+.app-header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 0 1.1rem;
+  flex-wrap: wrap;
+}
+
+.app-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.9rem;
+  text-decoration: none;
+}
+
+.app-brand-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 5rem;
+  height: 5rem;
+  padding: 0.2rem;
+  border: 1px solid rgba(18, 49, 59, 0.08);
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 14px 30px rgba(23, 132, 214, 0.12);
+}
+
+.app-logo {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.app-brand-copy {
+  display: grid;
+  gap: 0.12rem;
+}
+
+.app-brand-copy strong {
+  font-size: 1rem;
+  line-height: 1.2;
+}
+
+.app-brand-copy span {
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.35;
+}
+
+.app-header-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.app-nav-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}
+
+.app-status-pill,
+.app-user-chip {
+  display: grid;
+  gap: 0.15rem;
+  padding: 0.7rem 0.95rem;
+  border: 1px solid rgba(23, 132, 214, 0.14);
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.86);
+}
+
+.app-status-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 3rem;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.app-user-chip strong,
+.app-user-chip span {
+  line-height: 1.2;
+}
+
+.app-user-chip span {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.app-main {
+  min-height: 0;
+}
+
+.app-footer {
+  border-top: 1px solid rgba(18, 49, 59, 0.08);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(239, 247, 250, 0.92)),
+    linear-gradient(135deg, rgba(23, 132, 214, 0.06), rgba(31, 191, 143, 0.08));
+}
+
+.app-footer-inner {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(14rem, 0.9fr) minmax(14rem, 1fr);
+  gap: 1.5rem;
+  padding: 1.6rem 0 1.8rem;
+  align-items: start;
+}
+
+.app-footer-block {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.15rem 0;
+}
+
+.app-footer-label {
+  margin: 0;
+  color: var(--accent-blue-deep);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.app-footer-brand-block strong {
+  font-size: 1.1rem;
+  line-height: 1.3;
+}
+
+.app-footer-brand-block p,
+.app-footer-meta {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.app-footer-links-block,
+.app-footer-meta-block {
+  border-left: 1px solid rgba(18, 49, 59, 0.1);
+  padding-left: 1.25rem;
+}
+
+.app-footer-links {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.app-footer-links a {
+  color: var(--text);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.app-footer-links a:hover,
+.app-footer-links a:focus-visible {
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
 }
 
 .case-entry-page {
@@ -62,7 +239,7 @@ select {
 
 .auth-shell {
   width: min(calc(100% - 2rem), 34rem);
-  min-height: 100vh;
+  min-height: calc(100vh - 12rem);
   margin: 0 auto;
   display: grid;
   align-items: center;
@@ -1332,6 +1509,47 @@ select {
 }
 
 @media (max-width: 720px) {
+  .app-header-inner,
+  .app-footer-inner {
+    width: min(calc(100% - 1rem), var(--content-width));
+  }
+
+  .app-brand {
+    align-items: flex-start;
+  }
+
+  .app-brand-copy span {
+    font-size: 0.84rem;
+  }
+
+  .app-header-actions {
+    justify-content: flex-start;
+  }
+
+  .app-user-chip,
+  .app-status-pill,
+  .app-header-actions .primary-button,
+  .app-header-actions .secondary-button,
+  .app-header-actions .ghost-button {
+    width: 100%;
+  }
+
+  .app-footer-meta {
+    text-align: left;
+  }
+
+  .app-footer-inner {
+    grid-template-columns: 1fr;
+  }
+
+  .app-footer-links-block,
+  .app-footer-meta-block {
+    border-left: 0;
+    border-top: 1px solid rgba(18, 49, 59, 0.1);
+    padding-left: 0;
+    padding-top: 1rem;
+  }
+
   .auth-shell,
   .auth-shell-wide {
     width: min(calc(100% - 1rem), 34rem);

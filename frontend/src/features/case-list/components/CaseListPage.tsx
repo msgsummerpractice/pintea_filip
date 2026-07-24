@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 
-import { SessionActions } from "../../auth/components/SessionActions";
 import { HttpError } from "../../../lib/http";
 import { deleteCase, fetchCaseList } from "../api";
 import type { DeleteCaseResponse, CaseListRow } from "../types";
@@ -74,7 +73,6 @@ export function CaseListPage({ loader = fetchCaseList, deleter = deleteCase }: C
     <main className="user-list-page">
       <section className="user-list-frame" aria-labelledby="case-list-title">
         <header className="user-list-header">
-          <SessionActions />
           <div className="new-user-heading-row">
             <div>
               <p className="eyebrow">System administration</p>

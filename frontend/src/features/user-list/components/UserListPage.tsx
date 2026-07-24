@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
-import { SessionActions } from "../../auth/components/SessionActions";
 import { HttpError } from "../../../lib/http";
 import { deleteUser, fetchUserList } from "../api";
 import type { DeleteUserResponse, UserListRow } from "../types";
@@ -68,7 +67,6 @@ export function UserListPage({ loader = fetchUserList, deleter = deleteUser }: U
     <main className="user-list-page">
       <section className="user-list-frame" aria-labelledby="user-list-title">
         <header className="user-list-header">
-          <SessionActions />
           <div className="new-user-heading-row">
             <div>
               <p className="eyebrow">System administration</p>

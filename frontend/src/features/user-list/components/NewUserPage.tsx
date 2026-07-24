@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 
-import { SessionActions } from "../../auth/components/SessionActions";
 import { HttpError } from "../../../lib/http";
 import { fetchUserList } from "../api";
 import {
@@ -124,7 +123,6 @@ export function NewUserPage({ accessProbe = fetchUserList, submitter = createUse
     <main className="user-list-page">
       <section className="user-list-frame" aria-labelledby="new-user-title">
         <header className="user-list-header new-user-header">
-          <SessionActions />
           <div className="new-user-heading-row">
             <div>
               <p className="eyebrow">System administration</p>
