@@ -73,7 +73,7 @@ select {
 .app-brand {
   display: inline-flex;
   align-items: center;
-  gap: 0.9rem;
+  gap: 1rem;
   text-decoration: none;
 }
 
@@ -81,13 +81,8 @@ select {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 5rem;
-  height: 5rem;
-  padding: 0.2rem;
-  border: 1px solid rgba(18, 49, 59, 0.08);
-  border-radius: 1rem;
-  background: rgba(255, 255, 255, 0.92);
-  box-shadow: 0 14px 30px rgba(23, 132, 214, 0.12);
+  width: 6.5rem;
+  height: 6.5rem;
 }
 
 .app-logo {
