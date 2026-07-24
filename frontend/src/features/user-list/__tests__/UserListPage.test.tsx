@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter, RouterProvider, createMemoryRouter } from "react-router-dom";
 
 import { HttpError } from "../../../lib/http";
@@ -6,11 +7,27 @@ import { router as appRouter } from "../../../app/router";
 import { AuthProvider } from "../../auth/AuthProvider";
 import * as api from "../api";
 import { UserListPage } from "../components/UserListPage";
+import type { UserListRow } from "../types";
 
-function renderPage() {
+function buildUserRow(overrides: Partial<UserListRow> = {}): UserListRow {
+  return {
+    id: 1,
+    name: "Ada Admin",
+    email: "admin@example.com",
+    role: "System Admin",
+    assignedCaseCount: 0,
+    actions: { edit: false, delete: false },
+    ...overrides,
+  };
+}
+
+function renderPage(
+  loader?: () => Promise<UserListRow[]>,
+  deleter?: (userId: number) => Promise<{ id: number; message: string }>,
+) {
   render(
     <MemoryRouter>
-      <UserListPage />
+      <UserListPage loader={loader} deleter={deleter} />
     </MemoryRouter>,
   );
 }
@@ -50,26 +67,25 @@ describe("UserListPage", () => {
   });
 
   test("renders a loading state before users resolve", () => {
-    vi.spyOn(api, "fetchUserList").mockReturnValue(new Promise(() => undefined));
-
-    renderPage();
+    renderPage(() => new Promise(() => undefined));
 
     expect(screen.getByRole("status")).toHaveTextContent(/loading users/i);
   });
 
-  test("renders fetched users and disabled actions", async () => {
-    vi.spyOn(api, "fetchUserList").mockResolvedValue([
-      {
-        id: 1,
-        name: "Ada Admin",
-        email: "admin@example.com",
-        role: "System Admin",
-        assignedCaseCount: 0,
-        actions: { edit: false, delete: false },
-      },
-    ]);
-
-    renderPage();
+  test("renders fetched users with enabled delete actions for deletable rows", async () => {
+    renderPage(
+      vi.fn().mockResolvedValue([
+        buildUserRow(),
+        buildUserRow({
+          id: 2,
+          name: "Paula Passenger",
+          email: "passenger@example.com",
+          role: "Passenger",
+          assignedCaseCount: 1,
+          actions: { edit: false, delete: true },
+        }),
+      ]),
+    );
 
     expect(await screen.findByRole("cell", { name: /ada admin/i })).toBeInTheDocument();
     expect(screen.getByRole("columnheader", { name: /name/i })).toBeInTheDocument();
@@ -79,31 +95,75 @@ describe("UserListPage", () => {
     expect(screen.getByRole("columnheader", { name: /actions/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /edit admin@example.com/i })).toBeDisabled();
     expect(screen.getByRole("button", { name: /delete admin@example.com/i })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /delete passenger@example.com/i })).toBeEnabled();
   });
 
   test("renders the empty state", async () => {
-    vi.spyOn(api, "fetchUserList").mockResolvedValue([]);
-
-    renderPage();
+    renderPage(vi.fn().mockResolvedValue([]));
 
     expect(await screen.findByText(/no users found/i)).toBeInTheDocument();
   });
 
-  test("renders access denied state for forbidden responses", async () => {
-    vi.spyOn(api, "fetchUserList").mockRejectedValue(
-      new HttpError(403, "Forbidden", { detail: "Forbidden" }),
+  test("deletes a user and shows a confirmation message", async () => {
+    const user = userEvent.setup();
+    const deleter = vi.fn().mockResolvedValue({
+      id: 2,
+      message: "User account deleted successfully.",
+    });
+
+    renderPage(
+      vi.fn().mockResolvedValue([
+        buildUserRow({
+          id: 2,
+          name: "Paula Passenger",
+          email: "passenger@example.com",
+          role: "Passenger",
+          assignedCaseCount: 1,
+          actions: { edit: false, delete: true },
+        }),
+      ]),
+      deleter,
     );
 
-    renderPage();
+    await user.click(await screen.findByRole("button", { name: /delete passenger@example.com/i }));
+
+    expect(deleter).toHaveBeenCalledWith(2);
+    expect(await screen.findByText(/user account deleted successfully/i)).toBeInTheDocument();
+    expect(screen.getByText(/no users found/i)).toBeInTheDocument();
+  });
+
+  test("renders access denied state for forbidden responses", async () => {
+    renderPage(vi.fn().mockRejectedValue(new HttpError(403, "Forbidden", { detail: "Forbidden" })));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(/do not have access/i);
   });
 
   test("renders a generic error state for unexpected failures", async () => {
-    vi.spyOn(api, "fetchUserList").mockRejectedValue(new Error("Network down"));
-
-    renderPage();
+    renderPage(vi.fn().mockRejectedValue(new Error("Network down")));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(/unable to load users right now/i);
+  });
+
+  test("renders a delete-specific access error when deletion is forbidden", async () => {
+    const user = userEvent.setup();
+    const deleter = vi.fn().mockRejectedValue(new HttpError(403, "Forbidden", { detail: "Forbidden" }));
+
+    renderPage(
+      vi.fn().mockResolvedValue([
+        buildUserRow({
+          id: 2,
+          name: "Paula Passenger",
+          email: "passenger@example.com",
+          role: "Passenger",
+          assignedCaseCount: 1,
+          actions: { edit: false, delete: true },
+        }),
+      ]),
+      deleter,
+    );
+
+    await user.click(await screen.findByRole("button", { name: /delete passenger@example.com/i }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(/do not have access to delete users/i);
   });
 });

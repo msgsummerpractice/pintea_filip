@@ -1,5 +1,5 @@
 import { buildApiUrl } from "../../../lib/http";
-import { fetchUserList } from "../api";
+import { deleteUser, fetchUserList } from "../api";
 
 describe("user-list api", () => {
   afterEach(() => {
@@ -39,6 +39,31 @@ describe("user-list api", () => {
     expect(fetchSpy).toHaveBeenCalledWith(
       buildApiUrl("/users/"),
       expect.objectContaining({
+        credentials: "include",
+        headers: expect.any(Headers),
+      }),
+    );
+  });
+
+  test("deletes a user account", async () => {
+    vi.spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(new Response(null, { status: 204, headers: { "content-type": "application/json" } }))
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({ id: 7, message: "User account deleted successfully." }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        ),
+      );
+
+    await expect(deleteUser(7)).resolves.toEqual({
+      id: 7,
+      message: "User account deleted successfully.",
+    });
+
+    expect(globalThis.fetch).toHaveBeenLastCalledWith(
+      buildApiUrl("/users/7/"),
+      expect.objectContaining({
+        method: "DELETE",
         credentials: "include",
         headers: expect.any(Headers),
       }),

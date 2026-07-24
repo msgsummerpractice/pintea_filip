@@ -8,6 +8,7 @@ from django.contrib.auth import logout
 from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth import get_user_model
 from django.middleware.csrf import get_token
+from django.db import transaction
 from django.db import DatabaseError
 from django.db.models import Case as DbCase
 from django.db.models import CharField, Count, Value, When
@@ -158,12 +159,37 @@ class AdminUserListView(APIView):
                 "email": user.email,
                 "role": user.derived_role,
                 "assigned_case_count": user.assigned_case_count,
-                "actions": {"edit": False, "delete": False},
+                "actions": {"edit": False, "delete": not user.is_superuser},
             }
             for user in users
         ]
         serializer = UserListItemSerializer(payload, many=True)
         return Response({"results": serializer.data}, status=status.HTTP_200_OK)
+
+
+class AdminUserDeleteView(APIView):
+    permission_classes = [IsSystemAdminUser]
+
+    def delete(self, request, user_id: int) -> Response:
+        user_model = get_user_model()
+        user = user_model.objects.filter(id=user_id).first()
+        if user is None:
+            return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        if user.is_superuser:
+            return Response(
+                {"detail": "System administrator accounts cannot be deleted."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        deleted_user_id = user.id
+        with transaction.atomic():
+            user.delete()
+
+        return Response(
+            {"id": deleted_user_id, "message": "User account deleted successfully."},
+            status=status.HTTP_200_OK,
+        )
 
 
 class AdminUserCreateView(APIView):

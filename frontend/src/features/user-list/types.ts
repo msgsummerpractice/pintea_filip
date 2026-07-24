@@ -9,3 +9,8 @@ export interface UserListRow {
     delete: boolean;
   };
 }
+
+export interface DeleteUserResponse {
+  id: number;
+  message: string;
+}

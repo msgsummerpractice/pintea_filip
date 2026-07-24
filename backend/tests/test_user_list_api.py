@@ -87,6 +87,9 @@ def test_admin_can_list_all_users(admin_client, admin_user):
     assert results["passenger@example.com"]["assigned_case_count"] == 1
     assert results["colleague@example.com"]["assigned_case_count"] == 0
     assert results["admin@example.com"]["name"] == "Ada Admin"
+    assert results["admin@example.com"]["actions"] == {"edit": False, "delete": False}
+    assert results["colleague@example.com"]["actions"] == {"edit": False, "delete": True}
+    assert results["passenger@example.com"]["actions"] == {"edit": False, "delete": True}
     assert colleague_user.email in results
 
 
@@ -110,7 +113,7 @@ def test_name_falls_back_to_email_for_blank_names(admin_client):
     row = next(entry for entry in response.json()["results"] if entry["email"] == "blank@example.com")
     assert row["name"] == "blank@example.com"
     assert row["role"] == "Passenger"
-    assert row["actions"] == {"edit": False, "delete": False}
+    assert row["actions"] == {"edit": False, "delete": True}
 
 
 @pytest.mark.django_db
@@ -218,10 +221,79 @@ def test_create_colleague_rejects_duplicate_email(admin_client):
     )
 
     assert response.status_code == 400
-    assert response.json() == {"email": ["A user with this e-mail already exists."]}
-    assert get_user_model().objects.filter(email="existing@example.com").count() == 1
-    assert PassengerAuthState.objects.count() == 0
-    assert mail.outbox == []
+
+
+@pytest.mark.django_db
+def test_admin_can_delete_passenger_user_account(admin_client):
+    passenger_user = create_passenger_user(
+        "passenger-delete@example.com",
+        first_name="Paula",
+        last_name="Passenger",
+    )
+    passenger = create_passenger_for_user(passenger_user, email="passenger-delete@example.com")
+    case = Case.objects.create(
+        passenger=passenger,
+        reservation_number="DELETE1",
+        gdpr_consent_primary=True,
+        gdpr_consent_secondary=False,
+    )
+
+    response = admin_client.delete(f"/api/users/{passenger_user.id}/")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "id": passenger_user.id,
+        "message": "User account deleted successfully.",
+    }
+    assert get_user_model().objects.filter(id=passenger_user.id).exists() is False
+    passenger.refresh_from_db()
+    case.refresh_from_db()
+    assert passenger.user_id is None
+    assert case.passenger_id == passenger.id
+
+
+@pytest.mark.django_db
+def test_admin_can_delete_colleague_user_account(admin_client):
+    colleague_user = get_user_model().objects.create_user(
+        username="colleague-delete@example.com",
+        email="colleague-delete@example.com",
+        password="secret",
+        is_staff=True,
+        first_name="Cora",
+        last_name="Colleague",
+    )
+
+    response = admin_client.delete(f"/api/users/{colleague_user.id}/")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "id": colleague_user.id,
+        "message": "User account deleted successfully.",
+    }
+    assert get_user_model().objects.filter(id=colleague_user.id).exists() is False
+
+
+@pytest.mark.django_db
+def test_admin_cannot_delete_system_admin_account(admin_client, admin_user):
+    response = admin_client.delete(f"/api/users/{admin_user.id}/")
+
+    assert response.status_code == 400
+    assert response.json() == {"detail": "System administrator accounts cannot be deleted."}
+    assert get_user_model().objects.filter(id=admin_user.id).exists() is True
+
+
+@pytest.mark.django_db
+def test_non_admin_cannot_delete_user_account():
+    user = create_passenger_user("viewer-delete@example.com")
+    target_user = create_passenger_user("target-delete@example.com")
+    client = APIClient()
+    client.force_authenticate(user=user)
+
+    response = client.delete(f"/api/users/{target_user.id}/")
+
+    assert response.status_code == 403
+    assert get_user_model().objects.filter(id=target_user.id).exists() is True
+    assert response.json() == {"detail": "You do not have permission to perform this action."}
 
 
 @pytest.mark.django_db

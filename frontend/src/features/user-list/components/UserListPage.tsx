@@ -3,17 +3,24 @@ import { Link } from "react-router-dom";
 
 import { SessionActions } from "../../auth/components/SessionActions";
 import { HttpError } from "../../../lib/http";
-import { fetchUserList } from "../api";
-import type { UserListRow } from "../types";
+import { deleteUser, fetchUserList } from "../api";
+import type { DeleteUserResponse, UserListRow } from "../types";
 
-export function UserListPage() {
+interface UserListPageProps {
+  loader?: () => Promise<UserListRow[]>;
+  deleter?: (userId: number) => Promise<DeleteUserResponse>;
+}
+
+export function UserListPage({ loader = fetchUserList, deleter = deleteUser }: UserListPageProps = {}) {
   const [rows, setRows] = useState<UserListRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [pendingUserId, setPendingUserId] = useState<number | null>(null);
 
   useEffect(() => {
     let cancelled = false;
 
-    fetchUserList()
+    loader()
       .then((result) => {
         if (!cancelled) {
           setRows(result);
@@ -35,7 +42,27 @@ export function UserListPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [loader]);
+
+  async function handleDelete(userId: number) {
+    setPendingUserId(userId);
+    setError(null);
+    setStatusMessage(null);
+
+    try {
+      const result = await deleter(userId);
+      setRows((currentRows) => currentRows?.filter((row) => row.id !== userId) ?? []);
+      setStatusMessage(result.message);
+    } catch (reason: unknown) {
+      if (reason instanceof HttpError && (reason.status === 401 || reason.status === 403)) {
+        setError("You do not have access to delete users.");
+      } else {
+        setError("Unable to delete the user right now.");
+      }
+    } finally {
+      setPendingUserId(null);
+    }
+  }
 
   return (
     <main className="user-list-page">
@@ -61,6 +88,11 @@ export function UserListPage() {
 
         <div className="user-list-content">
           {rows === null && error === null ? <p role="status">Loading users...</p> : null}
+          {statusMessage ? (
+            <div className="notice-banner notice-banner-success" role="status">
+              {statusMessage}
+            </div>
+          ) : null}
           {error ? (
             <div className="notice-banner notice-banner-error" role="alert">
               {error}
@@ -103,10 +135,13 @@ export function UserListPage() {
                           <button
                             type="button"
                             className="ghost-button"
-                            disabled={!row.actions.delete}
+                            disabled={!row.actions.delete || pendingUserId === row.id}
+                            onClick={() => {
+                              void handleDelete(row.id);
+                            }}
                             aria-label={`Delete ${row.email}`}
                           >
-                            Delete
+                            {pendingUserId === row.id ? "Deleting..." : "Delete"}
                           </button>
                         </div>
                       </td>

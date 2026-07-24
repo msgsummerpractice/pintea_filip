@@ -1,5 +1,5 @@
 import { requestJson } from "../../lib/http";
-import type { UserListRow } from "./types";
+import type { DeleteUserResponse, UserListRow } from "./types";
 
 interface UserListResponse {
   results: Array<{
@@ -34,4 +34,11 @@ export async function fetchUserList(): Promise<UserListRow[]> {
     credentials: "include",
   });
   return response.results.map(mapUserListRow);
+}
+
+export async function deleteUser(userId: number): Promise<DeleteUserResponse> {
+  return requestJson<DeleteUserResponse>(`/users/${userId}/`, {
+    method: "DELETE",
+    credentials: "include",
+  });
 }
