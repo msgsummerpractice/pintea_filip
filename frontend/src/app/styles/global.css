@@ -366,6 +366,167 @@ select {
   max-width: 46rem;
 }
 
+.wizard-flow-layout {
+  display: grid;
+  grid-template-columns: 14rem minmax(0, 1fr);
+  gap: clamp(1rem, 3vw, 2rem);
+  align-items: start;
+}
+
+.wizard-flow-content {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.step-rail {
+  position: sticky;
+  top: 1.5rem;
+  display: grid;
+  grid-template-columns: 1fr;
+  align-self: start;
+  padding: 1rem 0.4rem 1rem 0;
+}
+
+.step-rail-track {
+  position: absolute;
+  top: 1.8rem;
+  bottom: 1.8rem;
+  left: 1.15rem;
+  width: 2px;
+  border-radius: 999px;
+  background: transparent;
+  overflow: hidden;
+}
+
+.step-rail-track-fill {
+  width: 100%;
+  border-radius: 999px;
+  background: linear-gradient(180deg, var(--accent-blue), var(--accent-green));
+}
+
+.step-rail-list {
+  position: relative;
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.step-rail-entry {
+  display: grid;
+  justify-items: start;
+}
+
+.step-rail-button {
+  display: grid;
+  grid-template-columns: 2.3rem minmax(0, 1fr);
+  gap: 0.8rem;
+  align-items: center;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.step-rail-marker {
+  position: relative;
+  z-index: 1;
+  display: inline-grid;
+  place-items: center;
+  width: 2.3rem;
+  height: 2.3rem;
+  border: 1px solid rgba(18, 49, 59, 0.14);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.96);
+  color: var(--muted);
+  box-shadow: 0 10px 22px rgba(18, 49, 59, 0.08);
+  transition: transform 0.18s ease, border-color 0.18s ease, color 0.18s ease, background 0.18s ease;
+}
+
+.step-rail-button:hover .step-rail-marker,
+.step-rail-button:focus-visible .step-rail-marker {
+  transform: translateY(-1px);
+}
+
+.step-rail-button:focus-visible {
+  outline: none;
+}
+
+.step-rail-button:focus-visible .step-rail-copy strong {
+  text-decoration: underline;
+}
+
+.step-rail-icon {
+  width: 1rem;
+  height: 1rem;
+}
+
+.step-rail-copy {
+  display: grid;
+  gap: 0.16rem;
+  min-width: 0;
+  padding: 0.15rem 0;
+}
+
+.step-rail-label {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.step-rail-copy strong {
+  font-size: 0.94rem;
+  line-height: 1.2;
+}
+
+.step-rail-button-complete .step-rail-marker,
+.step-rail-button-current .step-rail-marker {
+  border-color: rgba(23, 132, 214, 0.2);
+  color: var(--accent-blue-deep);
+}
+
+.step-rail-button-complete .step-rail-marker {
+  background: linear-gradient(180deg, rgba(23, 132, 214, 0.12), rgba(31, 191, 143, 0.16));
+}
+
+.step-rail-button-current .step-rail-marker {
+  background: linear-gradient(180deg, rgba(23, 132, 214, 0.16), rgba(31, 191, 143, 0.22));
+  box-shadow: 0 14px 28px rgba(23, 132, 214, 0.16);
+}
+
+.step-rail-button-current .step-rail-copy strong {
+  color: var(--accent-blue-deep);
+}
+
+.step-rail-button-upcoming {
+  opacity: 0.68;
+}
+
+.step-rail-connector {
+  display: grid;
+  justify-items: center;
+  gap: 0.28rem;
+  margin: 0.35rem 0 0.35rem 1rem;
+  padding: 0.2rem 0;
+}
+
+.step-rail-connector span {
+  width: 0.3rem;
+  height: 0.3rem;
+  border-radius: 999px;
+  background: rgba(18, 49, 59, 0.18);
+}
+
+.step-rail-connector-complete span {
+  background: linear-gradient(180deg, var(--accent-blue), var(--accent-green));
+}
+
 .wizard-hero-panel {
   display: grid;
   gap: var(--space-3);
@@ -1253,6 +1414,46 @@ select {
 }
 
 @media (max-width: 900px) {
+  .wizard-flow-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .step-rail {
+    position: static;
+    padding: 0;
+  }
+
+  .step-rail-track {
+    display: none;
+  }
+
+  .step-rail-list {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.75rem;
+  }
+
+  .step-rail-entry {
+    gap: 0.5rem;
+  }
+
+  .step-rail-button {
+    grid-template-columns: 2.3rem;
+    justify-items: center;
+  }
+
+  .step-rail-copy {
+    justify-items: center;
+    text-align: center;
+  }
+
+  .step-rail-copy strong {
+    font-size: 0.8rem;
+  }
+
+  .step-rail-connector {
+    display: none;
+  }
+
   .wizard-header-grid,
   .progress-step-list,
   .form-grid,
@@ -1282,6 +1483,10 @@ select {
   .case-entry-page {
     width: min(calc(100% - 1rem), var(--content-width));
     padding: 1rem 0 2rem;
+  }
+
+  .step-rail-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .case-entry-hero {

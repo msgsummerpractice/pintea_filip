@@ -38,6 +38,14 @@ interface ActiveStepMeta {
   description: string;
 }
 
+interface StepRailItem {
+  id: CaseEntryWizardStepId;
+  index: number;
+  label: string;
+  title: string;
+  status: "complete" | "current" | "upcoming";
+}
+
 function splitDisplayName(name: string): { firstName: string; lastName: string } {
   const trimmedName = name.trim();
   if (!trimmedName) {
@@ -161,8 +169,123 @@ function hasStepInteraction(step: CaseEntryWizardStepId, draft: CaseEntryDraft):
   }
 }
 
+function getStepIcon(step: CaseEntryWizardStepId) {
+  switch (step) {
+    case "itinerary":
+      return (
+        <svg aria-hidden="true" className="step-rail-icon" viewBox="0 0 24 24">
+          <path d="M3 14l18-4-7 7 1 4-3-2-3 2 1-4-7-3z" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" />
+        </svg>
+      );
+    case "disruptionDetails":
+      return (
+        <svg aria-hidden="true" className="step-rail-icon" viewBox="0 0 24 24">
+          <path d="M12 4l8 14H4L12 4z" fill="none" stroke="currentColor" strokeLinejoin="round" strokeWidth="1.8" />
+          <path d="M12 9v4" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />
+          <circle cx="12" cy="16.5" r="1" fill="currentColor" />
+        </svg>
+      );
+    case "disruptionMotive":
+      return (
+        <svg aria-hidden="true" className="step-rail-icon" viewBox="0 0 24 24">
+          <path d="M8 5h8l3 3v11H8z" fill="none" stroke="currentColor" strokeLinejoin="round" strokeWidth="1.8" />
+          <path d="M16 5v4h4" fill="none" stroke="currentColor" strokeLinejoin="round" strokeWidth="1.8" />
+          <path d="M10.5 13h6M10.5 16h4" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />
+        </svg>
+      );
+    case "compliance":
+      return (
+        <svg aria-hidden="true" className="step-rail-icon" viewBox="0 0 24 24">
+          <path d="M12 4l7 3v5c0 4.3-2.9 7.6-7 8.8C7.9 19.6 5 16.3 5 12V7l7-3z" fill="none" stroke="currentColor" strokeLinejoin="round" strokeWidth="1.8" />
+          <path d="M9.5 12.5l1.8 1.8 3.7-4" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" />
+        </svg>
+      );
+    case "flightDetails":
+      return (
+        <svg aria-hidden="true" className="step-rail-icon" viewBox="0 0 24 24">
+          <rect x="4" y="7" width="16" height="10" rx="2.5" fill="none" stroke="currentColor" strokeWidth="1.8" />
+          <path d="M8 10h8M8 14h4" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />
+        </svg>
+      );
+    case "passengerDetails":
+      return (
+        <svg aria-hidden="true" className="step-rail-icon" viewBox="0 0 24 24">
+          <circle cx="12" cy="9" r="3.2" fill="none" stroke="currentColor" strokeWidth="1.8" />
+          <path d="M6.5 19c1.4-3 3.6-4.5 5.5-4.5s4.1 1.5 5.5 4.5" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />
+        </svg>
+      );
+    case "documents":
+      return (
+        <svg aria-hidden="true" className="step-rail-icon" viewBox="0 0 24 24">
+          <path d="M8 4h7l4 4v12H8z" fill="none" stroke="currentColor" strokeLinejoin="round" strokeWidth="1.8" />
+          <path d="M15 4v4h4M10.5 13h6M10.5 16h6" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" />
+        </svg>
+      );
+    case "review":
+      return (
+        <svg aria-hidden="true" className="step-rail-icon" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" strokeWidth="1.8" />
+          <path d="M8.8 12.3l2.2 2.2 4.4-4.8" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" />
+        </svg>
+      );
+    default:
+      return null;
+  }
+}
+
+function StepRail({ items, onSelect }: { items: StepRailItem[]; onSelect: (stepId: string) => void }) {
+  const progressPercent = items.length <= 1 ? 0 : (items.findIndex((item) => item.status === "current") / (items.length - 1)) * 100;
+
+  return (
+    <nav aria-label="Case entry progress" className="step-rail">
+      <div aria-hidden="true" className="step-rail-track">
+        <div className="step-rail-track-fill" style={{ height: `${progressPercent}%` }} />
+      </div>
+
+      <ol className="step-rail-list">
+        {items.map((item, index) => (
+          <li className="step-rail-entry" key={item.id}>
+            <button
+              aria-current={item.status === "current" ? "step" : undefined}
+              className={[
+                "step-rail-button",
+                `step-rail-button-${item.status}`,
+              ].join(" ")}
+              onClick={() => onSelect(item.id)}
+              type="button"
+            >
+              <span className="step-rail-marker">{getStepIcon(item.id)}</span>
+              <span className="step-rail-copy">
+                <span className="step-rail-label">{item.label}</span>
+                <strong>{item.title}</strong>
+              </span>
+            </button>
+
+            {index < items.length - 1 ? (
+              <span
+                aria-hidden="true"
+                className={[
+                  "step-rail-connector",
+                  item.status === "complete" ? "step-rail-connector-complete" : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+              >
+                <span />
+                <span />
+                <span />
+              </span>
+            ) : null}
+          </li>
+        ))}
+      </ol>
+    </nav>
+  );
+}
+
 export function CaseEntryPage({ initialDraft, submitter }: CaseEntryPageProps = {}) {
   const auth = useOptionalAuth();
+  const currentUser = auth?.user;
   const wizard = useCaseEntryWizard({ initialDraft, submitter });
   const [revealedErrors, setRevealedErrors] = useState<Record<string, boolean>>({});
   const [successfulResponse, setSuccessfulResponse] = useState<CaseEntrySubmitResponse | null>(null);
@@ -215,18 +338,18 @@ export function CaseEntryPage({ initialDraft, submitter }: CaseEntryPageProps = 
   }, [isLoggedInPassenger, successfulResponse]);
 
   useEffect(() => {
-    if (!isLoggedInPassenger || !auth?.user || !showNewCaseForm) {
+    if (!isLoggedInPassenger || !currentUser || !showNewCaseForm) {
       return;
     }
 
-    const { firstName, lastName } = splitDisplayName(auth.user.name);
+    const { firstName, lastName } = splitDisplayName(currentUser.name);
     wizard.setStepData("passengerDetails", (current) => ({
       ...current,
       firstName: current.firstName || firstName,
       lastName: current.lastName || lastName,
-      email: current.email || auth.user.email,
+      email: current.email || currentUser.email,
     }));
-  }, [auth?.user, isLoggedInPassenger, showNewCaseForm]);
+  }, [currentUser, isLoggedInPassenger, showNewCaseForm]);
 
   function revealCurrentStepErrors() {
     setRevealedErrors((current) => ({ ...current, [wizard.currentStep]: true }));
@@ -401,6 +524,18 @@ export function CaseEntryPage({ initialDraft, submitter }: CaseEntryPageProps = 
   const showNavigation = wizard.currentStep !== "review";
   const showBackButton = wizard.canGoBack;
   const shouldShowCaseForm = !isLoggedInPassenger || showNewCaseForm;
+  const stepRailItems: StepRailItem[] = wizard.steps.map((step, index) => ({
+    id: step,
+    index,
+    label: activeStepMeta[step].label,
+    title: activeStepMeta[step].title,
+    status:
+      index < wizard.currentStepIndex
+        ? "complete"
+        : index === wizard.currentStepIndex
+          ? "current"
+          : "upcoming",
+  }));
 
   return (
     <main className="case-entry-page">
@@ -467,55 +602,61 @@ export function CaseEntryPage({ initialDraft, submitter }: CaseEntryPageProps = 
                 </p>
               </header>
 
-              <StepFrame
-                description={frameMeta.description}
-                label={frameMeta.label}
-                title={frameMeta.title}
-              >
-                <AnimatePresence mode="wait">
-                  <motion.div
-                    animate={{ opacity: 1, y: 0 }}
-                    className="step-stage"
-                    initial={{ opacity: 0, y: 18 }}
-                    key={wizard.currentStep}
-                    transition={{ duration: 0.26, ease: "easeOut" }}
-                  >
-                    {renderActiveStep()}
-                  </motion.div>
-                </AnimatePresence>
+              <div className="wizard-flow-layout">
+                <StepRail items={stepRailItems} onSelect={handleStepSelection} />
 
-                {wizard.submitState.status === "error" && (
-                  <SubmitErrorBanner error={wizard.submitState.error} />
-                )}
-
-                {(wizard.submitState.status === "success" || successfulResponse) && (
-                  <SubmitSuccessBanner submitState={wizard.submitState} fallbackResponse={successfulResponse} />
-                )}
-
-                {(showNavigation || showBackButton) && (
-                  <div className="wizard-nav">
-                    <button
-                      className="secondary-button"
-                      disabled={!showBackButton}
-                      onClick={handleBack}
-                      type="button"
+                <div className="wizard-flow-content">
+                <StepFrame
+                  description={frameMeta.description}
+                  label={frameMeta.label}
+                  title={frameMeta.title}
+                >
+                  <AnimatePresence mode="wait">
+                    <motion.div
+                      animate={{ opacity: 1, y: 0 }}
+                      className="step-stage"
+                      initial={{ opacity: 0, y: 18 }}
+                      key={wizard.currentStep}
+                      transition={{ duration: 0.26, ease: "easeOut" }}
                     >
-                      Back
-                    </button>
+                      {renderActiveStep()}
+                    </motion.div>
+                  </AnimatePresence>
 
-                    {showNavigation && (
+                  {wizard.submitState.status === "error" && (
+                    <SubmitErrorBanner error={wizard.submitState.error} />
+                  )}
+
+                  {(wizard.submitState.status === "success" || successfulResponse) && (
+                    <SubmitSuccessBanner submitState={wizard.submitState} fallbackResponse={successfulResponse} />
+                  )}
+
+                  {(showNavigation || showBackButton) && (
+                    <div className="wizard-nav">
                       <button
-                        className="primary-button"
-                        disabled={!wizard.canGoNext}
-                        onClick={handleNext}
+                        className="secondary-button"
+                        disabled={!showBackButton}
+                        onClick={handleBack}
                         type="button"
                       >
-                        Continue to next step
+                        Back
                       </button>
-                    )}
-                  </div>
-                )}
-              </StepFrame>
+
+                      {showNavigation && (
+                        <button
+                          className="primary-button"
+                          disabled={!wizard.canGoNext}
+                          onClick={handleNext}
+                          type="button"
+                        >
+                          Continue to next step
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </StepFrame>
+              </div>
+              </div>
             </>
           ) : (
             <div className="notice-banner" role="status">
