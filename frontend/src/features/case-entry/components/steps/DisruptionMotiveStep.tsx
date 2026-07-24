@@ -38,10 +38,11 @@ export function DisruptionMotiveStep({
       <div className="form-grid">
         {showMotiveQuestion && (
           <>
-            <fieldset className="field">
-              <legend>Did the airline mention disruption motive?</legend>
+            <fieldset className="field disruption-question-card field-span-full">
+              <legend className="disruption-question-title">Did the airline mention disruption motive?</legend>
+              <div className="disruption-option-grid">
               {(["yes", "no", "i_dont_know"] as const).map((option) => (
-                <label key={option} className="radio-option">
+                <label key={option} className="radio-option disruption-option-card">
                   <input
                     checked={disruptionMotive.airlineMotiveKnown === option}
                     name="airlineMotiveKnown"
@@ -53,16 +54,18 @@ export function DisruptionMotiveStep({
                   </span>
                 </label>
               ))}
+              </div>
               {getError(errors, "disruptionMotive.airlineMotiveKnown") && (
                 <p className="field-error">{getError(errors, "disruptionMotive.airlineMotiveKnown")}</p>
               )}
             </fieldset>
 
             {disruptionMotive.airlineMotiveKnown === "yes" && (
-              <fieldset className="field">
-                <legend>What was the motive communicated by the airline?</legend>
+              <fieldset className="field disruption-question-card field-span-full">
+                <legend className="disruption-question-title">What was the motive communicated by the airline?</legend>
+                <div className="disruption-option-grid">
                 {AIRLINE_MOTIVE_OPTIONS.map(({ value, label }) => (
-                  <label key={value} className="radio-option">
+                  <label key={value} className="radio-option disruption-option-card">
                     <input
                       checked={disruptionMotive.airlineMotive === value}
                       name="airlineMotive"
@@ -72,6 +75,7 @@ export function DisruptionMotiveStep({
                     <span>{label}</span>
                   </label>
                 ))}
+                </div>
                 {getError(errors, "disruptionMotive.airlineMotive") && (
                   <p className="field-error">{getError(errors, "disruptionMotive.airlineMotive")}</p>
                 )}
@@ -80,7 +84,7 @@ export function DisruptionMotiveStep({
           </>
         )}
 
-        <label className="field">
+        <label className="field field-span-full disruption-textarea-card">
           <span>Describe in short what has happened</span>
           <textarea
             className="text-input textarea-large"

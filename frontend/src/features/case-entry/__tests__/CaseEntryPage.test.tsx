@@ -89,18 +89,25 @@ function buildValidDraft(): CaseEntryDraft {
 }
 
 test("renders the case entry route on the root path", async () => {
-  vi.spyOn(window, "fetch").mockResolvedValue(
-    new Response(
-      JSON.stringify({
-        id: 5,
-        email: "passenger@example.com",
-        name: "Pat Passenger",
-        role: "Passenger",
-        mustChangePasswordOnFirstLogin: false,
-      }),
-      { status: 200, headers: { "content-type": "application/json" } },
-    ),
-  );
+  vi.spyOn(window, "fetch")
+    .mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          id: 5,
+          email: "passenger@example.com",
+          name: "Pat Passenger",
+          role: "Passenger",
+          mustChangePasswordOnFirstLogin: false,
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      ),
+    )
+    .mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({ results: [] }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      ),
+    );
 
   const router = createMemoryRouter(appRouter.routes, {
     initialEntries: ["/"],
@@ -112,11 +119,60 @@ test("renders the case entry route on the root path", async () => {
     </AuthProvider>,
   );
 
-  expect(
-    await screen.findByRole("heading", { name: /start your compensation case/i }),
-  ).toBeInTheDocument();
-  expect(screen.getByRole("region", { name: /build the itinerary/i })).toBeInTheDocument();
-  expect(screen.queryByText(/placeholder exists only/i)).not.toBeInTheDocument();
+  expect(await screen.findByRole("heading", { name: /my cases/i })).toBeInTheDocument();
+  expect(screen.queryByRole("region", { name: /add your journey/i })).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: /create new case/i })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: /sign out/i })).toBeInTheDocument();
+});
+
+test("logged-in passengers see their cases and a create new case button", async () => {
+  const user = userEvent.setup();
+  vi.spyOn(window, "fetch")
+    .mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          id: 5,
+          email: "passenger@example.com",
+          name: "Pat Passenger",
+          role: "Passenger",
+          mustChangePasswordOnFirstLogin: false,
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      ),
+    )
+    .mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          results: [
+            {
+              id: "CASE-ABC123DEF456",
+              case_date: "2026-07-24",
+              flight_number: "RO201",
+              flight_date: "2026-07-20",
+              status: "NEW",
+              actions: { delete: false },
+            },
+          ],
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      ),
+    );
+
+  const router = createMemoryRouter(appRouter.routes, {
+    initialEntries: ["/"],
+  });
+
+  render(
+    <AuthProvider>
+      <RouterProvider router={router} />
+    </AuthProvider>,
+  );
+
+  expect(await screen.findByRole("cell", { name: /case-abc123def456/i })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: /create new case/i })).toBeInTheDocument();
+  expect(screen.queryByRole("region", { name: /add your journey/i })).not.toBeInTheDocument();
+  await user.click(screen.getByRole("button", { name: /create new case/i }));
+  expect(screen.getByRole("region", { name: /add your journey/i })).toBeInTheDocument();
 });
 
 test("keeps the next button disabled until the current step is valid", () => {
@@ -160,12 +216,18 @@ test("shows submit confirmation details when the mocked submit succeeds", async 
     await user.click(screen.getByRole("button", { name: /continue to next step/i }));
   }
 
+  expect(screen.getByText(/disruption summary/i)).toBeInTheDocument();
+  expect(screen.getByText(/final arrival outcome/i)).toBeInTheDocument();
+  expect(screen.getAllByText(/never arrived/i)).toHaveLength(2);
+
   await user.click(screen.getByRole("button", { name: /submit case/i }));
 
   expect(await screen.findByRole("status")).toHaveTextContent(/case submitted successfully/i);
   expect(screen.getByRole("status")).toHaveTextContent(/your intake package is ready for review/i);
   expect(screen.getByRole("status")).toHaveTextContent(/status: new/i);
   expect(screen.getByRole("status")).toHaveTextContent(/case id: case-abc123def456/i);
+  expect(screen.getByRole("region", { name: /add your journey/i })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: /continue to next step/i })).toBeDisabled();
   expect(submitter).toHaveBeenCalledTimes(1);
 });
 

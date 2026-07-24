@@ -139,11 +139,36 @@ def test_admin_can_list_cases(admin_client):
 
 
 @pytest.mark.django_db
-def test_non_admin_cannot_list_cases():
+def test_passenger_can_list_only_owned_cases():
+    owned_case = create_case_graph(linked_user=True)
+    create_case_graph()
+    client = APIClient()
+    client.force_authenticate(user=owned_case.passenger.user)
+
+    response = client.get("/api/cases/")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "results": [
+            {
+                "id": owned_case.case_id,
+                "case_date": owned_case.created_at.date().isoformat(),
+                "flight_number": "RO201",
+                "flight_date": "2026-07-20",
+                "status": owned_case.status,
+                "actions": {"delete": False},
+            }
+        ]
+    }
+
+
+@pytest.mark.django_db
+def test_colleague_cannot_list_cases():
     user = get_user_model().objects.create_user(
         username="viewer@example.com",
         email="viewer@example.com",
         password="secret",
+        is_staff=True,
     )
     client = APIClient()
     client.force_authenticate(user=user)

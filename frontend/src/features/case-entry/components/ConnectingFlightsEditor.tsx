@@ -48,7 +48,7 @@ export function ConnectingFlightsEditor({
       <p className="field-support">
         {remainingSlots > 0
           ? `${remainingSlots} connection slots remaining.`
-          : "Connection limit reached for Story 1."}
+          : "Connection limit reached for this request."}
       </p>
 
       {getError(errors, "itinerary.problemFlightId") && (

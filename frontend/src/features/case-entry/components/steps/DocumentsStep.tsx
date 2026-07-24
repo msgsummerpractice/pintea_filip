@@ -41,8 +41,7 @@ export function DocumentsStep({ documents, errors, onFileChange }: DocumentsStep
       <section className="step-intro-card">
         <strong>Upload the core proof package.</strong>
         <p>
-          Story 1 keeps uploads lightweight: one boarding pass and one identification file, each
-          capped and validated by the existing schema.
+          Add one boarding pass and one identification document so we can verify the trip and the passenger.
         </p>
       </section>
 

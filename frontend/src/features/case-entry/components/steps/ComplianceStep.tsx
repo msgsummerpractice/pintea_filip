@@ -52,8 +52,7 @@ export function ComplianceStep({ compliance, errors, onChange }: ComplianceStepP
       <section className="step-intro-card compliance-intro-card">
         <strong>Consent must be explicit before case handling starts.</strong>
         <p>
-          Story 1 stores the intake choices only. Downstream processing rules stay attached to the
-          later disruption workflow.
+          Your privacy choices help us process the request correctly and contact you about important updates.
         </p>
       </section>
 

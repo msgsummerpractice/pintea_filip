@@ -49,10 +49,12 @@ export function DisruptionDetailsStep({
 
         {disruptionDetails.disruptionType === "cancellation" && (
           <>
-            <fieldset className="field">
-              <legend>How late arrived to final destination?</legend>
+            <fieldset className="field disruption-question-card field-span-full">
+              <legend className="disruption-question-title">How late arrived to final destination?</legend>
+              <p className="field-support">We use the final arrival outcome to understand the impact of the cancellation.</p>
+              <div className="disruption-option-grid">
               {(["<3h", ">3h", "never arrived"] as const).map((option) => (
-                <label key={option} className="radio-option">
+                <label key={option} className="radio-option disruption-option-card">
                   <input
                     checked={disruptionDetails.finalArrivalOutcome === option}
                     name="finalArrivalOutcome"
@@ -62,15 +64,17 @@ export function DisruptionDetailsStep({
                   <span>{option}</span>
                 </label>
               ))}
+              </div>
               {getError(errors, "disruptionDetails.finalArrivalOutcome") && (
                 <p className="field-error">{getError(errors, "disruptionDetails.finalArrivalOutcome")}</p>
               )}
             </fieldset>
 
-            <fieldset className="field">
-              <legend>How many days before cancellation has the airline informed?</legend>
+            <fieldset className="field disruption-question-card field-span-full">
+              <legend className="disruption-question-title">How many days before cancellation has the airline informed?</legend>
+              <div className="disruption-option-grid">
               {([">14 days", "<14 days", "on flight day"] as const).map((option) => (
-                <label key={option} className="radio-option">
+                <label key={option} className="radio-option disruption-option-card">
                   <input
                     checked={disruptionDetails.cancellationNoticeTiming === option}
                     name="cancellationNoticeTiming"
@@ -80,6 +84,7 @@ export function DisruptionDetailsStep({
                   <span>{option}</span>
                 </label>
               ))}
+              </div>
               {getError(errors, "disruptionDetails.cancellationNoticeTiming") && (
                 <p className="field-error">{getError(errors, "disruptionDetails.cancellationNoticeTiming")}</p>
               )}
@@ -88,10 +93,12 @@ export function DisruptionDetailsStep({
         )}
 
         {disruptionDetails.disruptionType === "delay" && (
-          <fieldset className="field">
-            <legend>How late arrived to final destination?</legend>
+          <fieldset className="field disruption-question-card field-span-full">
+            <legend className="disruption-question-title">How late arrived to final destination?</legend>
+            <p className="field-support">Choose the outcome that best matches the completed journey.</p>
+            <div className="disruption-option-grid">
             {(["<3h", ">3h", "connection flight lost"] as const).map((option) => (
-              <label key={option} className="radio-option">
+              <label key={option} className="radio-option disruption-option-card">
                 <input
                   checked={disruptionDetails.finalArrivalOutcome === option}
                   name="finalArrivalOutcome"
@@ -101,6 +108,7 @@ export function DisruptionDetailsStep({
                 <span>{option}</span>
               </label>
             ))}
+            </div>
             {getError(errors, "disruptionDetails.finalArrivalOutcome") && (
               <p className="field-error">{getError(errors, "disruptionDetails.finalArrivalOutcome")}</p>
             )}
@@ -109,10 +117,11 @@ export function DisruptionDetailsStep({
 
         {disruptionDetails.disruptionType === "denied_boarding" && (
           <>
-            <fieldset className="field">
-              <legend>How late arrived to final destination?</legend>
+            <fieldset className="field disruption-question-card field-span-full">
+              <legend className="disruption-question-title">How late arrived to final destination?</legend>
+              <div className="disruption-option-grid">
               {(["<3h", ">3h", "never arrived"] as const).map((option) => (
-                <label key={option} className="radio-option">
+                <label key={option} className="radio-option disruption-option-card">
                   <input
                     checked={disruptionDetails.finalArrivalOutcome === option}
                     name="finalArrivalOutcome"
@@ -122,15 +131,17 @@ export function DisruptionDetailsStep({
                   <span>{option}</span>
                 </label>
               ))}
+              </div>
               {getError(errors, "disruptionDetails.finalArrivalOutcome") && (
                 <p className="field-error">{getError(errors, "disruptionDetails.finalArrivalOutcome")}</p>
               )}
             </fieldset>
 
-            <fieldset className="field">
-              <legend>Did you give up your seat voluntarily?</legend>
+            <fieldset className="field disruption-question-card field-span-full">
+              <legend className="disruption-question-title">Did you give up your seat voluntarily?</legend>
+              <div className="disruption-option-grid disruption-option-grid-compact">
               {(["yes", "no"] as const).map((option) => (
-                <label key={option} className="radio-option">
+                <label key={option} className="radio-option disruption-option-card">
                   <input
                     checked={disruptionDetails.gaveUpSeatVoluntarily === option}
                     name="gaveUpSeatVoluntarily"
@@ -140,21 +151,23 @@ export function DisruptionDetailsStep({
                   <span>{option === "yes" ? "Yes" : "No"}</span>
                 </label>
               ))}
+              </div>
               {getError(errors, "disruptionDetails.gaveUpSeatVoluntarily") && (
                 <p className="field-error">{getError(errors, "disruptionDetails.gaveUpSeatVoluntarily")}</p>
               )}
             </fieldset>
 
             {disruptionDetails.gaveUpSeatVoluntarily === "no" && (
-              <fieldset className="field">
-                <legend>Reason behind denial of boarding</legend>
+              <fieldset className="field disruption-question-card field-span-full">
+                <legend className="disruption-question-title">Reason behind denial of boarding</legend>
+                <div className="disruption-option-grid">
                 {([
                   ["flight_overbooked", "Flight overbooked"],
                   ["aggressive_behavior", "Aggressive behavior with staff"],
                   ["intoxication", "Intoxication"],
                   ["unspecified_reason", "Unspecified reason"],
                 ] as const).map(([value, label]) => (
-                  <label key={value} className="radio-option">
+                  <label key={value} className="radio-option disruption-option-card">
                     <input
                       checked={disruptionDetails.deniedBoardingReason === value}
                       name="deniedBoardingReason"
@@ -164,6 +177,7 @@ export function DisruptionDetailsStep({
                     <span>{label}</span>
                   </label>
                 ))}
+                </div>
                 {getError(errors, "disruptionDetails.deniedBoardingReason") && (
                   <p className="field-error">{getError(errors, "disruptionDetails.deniedBoardingReason")}</p>
                 )}

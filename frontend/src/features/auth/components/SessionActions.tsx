@@ -1,10 +1,8 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
 
 import { useOptionalAuth } from "../AuthProvider";
 
 export function SessionActions() {
-  const navigate = useNavigate();
   const auth = useOptionalAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -18,7 +16,7 @@ export function SessionActions() {
     setIsSubmitting(true);
     try {
       await logout();
-      navigate("/login", { replace: true });
+      window.location.assign("/login");
     } finally {
       setIsSubmitting(false);
     }
@@ -31,9 +29,9 @@ export function SessionActions() {
         <p className="session-actions-meta">{user.role}</p>
       </div>
       <div className="session-actions-buttons">
-        <Link className="ghost-button" to="/change-password">
+        <a className="ghost-button" href="/change-password">
           Change Password
-        </Link>
+        </a>
         <button className="secondary-button" disabled={isSubmitting} onClick={handleLogout} type="button">
           {isSubmitting ? "Signing out..." : "Sign Out"}
         </button>

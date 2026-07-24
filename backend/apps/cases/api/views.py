@@ -258,10 +258,27 @@ class CaseCreateView(APIView):
     parser_classes = [parsers.MultiPartParser, parsers.FormParser]
 
     def get(self, request) -> Response:
-        if not IsSystemAdminUser().has_permission(request, self):
-            return Response({"detail": "You do not have permission to perform this action."}, status=status.HTTP_403_FORBIDDEN)
+        user = request.user
+        if not user or not user.is_authenticated:
+            return Response(
+                {"detail": "Authentication credentials were not provided."},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
 
-        cases = Case.objects.prefetch_related("flight_legs").order_by("-created_at", "-id")
+        can_delete = False
+        if user.is_superuser:
+            cases = Case.objects.prefetch_related("flight_legs").order_by("-created_at", "-id")
+            can_delete = True
+        elif user.is_staff:
+            return Response({"detail": "You do not have permission to perform this action."}, status=status.HTTP_403_FORBIDDEN)
+        else:
+            cases = (
+                Case.objects.filter(passenger__user=user)
+                .prefetch_related("flight_legs")
+                .order_by("-created_at", "-id")
+                .distinct()
+            )
+
         payload = []
         for case in cases:
             flight_legs = list(case.flight_legs.all())
@@ -276,7 +293,7 @@ class CaseCreateView(APIView):
                     "flight_number": selected_leg.flight_number if selected_leg else "",
                     "flight_date": selected_leg.flight_date if selected_leg else None,
                     "status": case.status,
-                    "actions": {"delete": True},
+                    "actions": {"delete": can_delete},
                 }
             )
 

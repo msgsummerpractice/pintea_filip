@@ -1,7 +1,12 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
+import { useOptionalAuth } from "../../auth/AuthProvider";
 import { SessionActions } from "../../auth/components/SessionActions";
+import { fetchCaseList } from "../../case-list/api";
+import type { CaseListRow } from "../../case-list/types";
+import { HttpError } from "../../../lib/http";
+
 import type { CaseEntrySubmitState } from "../hooks/useCaseEntryWizard";
 import { useCaseEntryWizard } from "../hooks/useCaseEntryWizard";
 import type {
@@ -36,43 +41,43 @@ interface ActiveStepMeta {
 const activeStepMeta: Record<CaseEntryWizardStepId, ActiveStepMeta> = {
   itinerary: {
     label: "Step 1",
-    title: "Build the itinerary",
-    description: "Capture the airports, the affected route, and any connecting flights tied to the disruption.",
+    title: "Add your journey",
+    description: "Tell us where you were travelling from, where you were headed, and whether your trip included any connections.",
   },
   disruptionDetails: {
     label: "Step 2",
     title: "Describe the disruption",
-    description: "Select the type of disruption you experienced and answer the follow-up questions.",
+    description: "Choose the disruption type and answer a few follow-up questions about what happened during the trip.",
   },
   disruptionMotive: {
     label: "Step 3",
-    title: "Disruption motive",
-    description: "Provide details about the airline's stated reason and describe the incident.",
+    title: "Add more details",
+    description: "Share the airline's explanation, if one was given, and briefly describe the incident in your own words.",
   },
   compliance: {
     label: "Step 4",
     title: "Confirm consent",
-    description: "Record the passenger's GDPR permissions before personal and document details are collected.",
+    description: "Confirm how we may use your information so we can process your request and keep you informed.",
   },
   flightDetails: {
     label: "Step 5",
-    title: "Add primary flight details",
-    description: "Enter the main reservation and scheduled timing that anchors the compensation case.",
+    title: "Add your flight details",
+    description: "Enter the booking and schedule details for the flight that was affected.",
   },
   passengerDetails: {
     label: "Step 6",
-    title: "Capture passenger details",
-    description: "Store the contact identity used for airline outreach and case tracking.",
+    title: "Add passenger details",
+    description: "Provide the contact details we should use for updates about your request.",
   },
   documents: {
     label: "Step 7",
     title: "Upload proof documents",
-    description: "Attach the boarding pass and the identification document required by intake review.",
+    description: "Upload the documents that help confirm the trip and the affected passenger.",
   },
   review: {
     label: "Step 8",
     title: "Review and submit",
-    description: "Confirm the collected information and submit.",
+    description: "Review everything carefully before sending your request.",
   },
 };
 
@@ -144,8 +149,14 @@ function hasStepInteraction(step: CaseEntryWizardStepId, draft: CaseEntryDraft):
 }
 
 export function CaseEntryPage({ initialDraft, submitter }: CaseEntryPageProps = {}) {
+  const auth = useOptionalAuth();
   const wizard = useCaseEntryWizard({ initialDraft, submitter });
   const [revealedErrors, setRevealedErrors] = useState<Record<string, boolean>>({});
+  const [successfulResponse, setSuccessfulResponse] = useState<CaseEntrySubmitResponse | null>(null);
+  const [passengerCases, setPassengerCases] = useState<CaseListRow[] | null>(null);
+  const [casesError, setCasesError] = useState<string | null>(null);
+  const [showNewCaseForm, setShowNewCaseForm] = useState(false);
+  const isLoggedInPassenger = auth?.user?.role === "Passenger";
 
   const shouldShowCurrentStepErrors =
     revealedErrors[wizard.currentStep]
@@ -157,11 +168,45 @@ export function CaseEntryPage({ initialDraft, submitter }: CaseEntryPageProps = 
     ? wizard.stepValidity[wizard.currentStep].errors
     : {};
 
+  useEffect(() => {
+    if (!isLoggedInPassenger) {
+      setPassengerCases(null);
+      setCasesError(null);
+      setShowNewCaseForm(false);
+      return;
+    }
+
+    let cancelled = false;
+    fetchCaseList()
+      .then((result) => {
+        if (!cancelled) {
+          setPassengerCases(result);
+        }
+      })
+      .catch((reason: unknown) => {
+        if (cancelled) {
+          return;
+        }
+
+        if (reason instanceof HttpError && (reason.status === 401 || reason.status === 403)) {
+          setCasesError("You do not have access to your cases right now.");
+          return;
+        }
+
+        setCasesError("Unable to load your cases right now.");
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isLoggedInPassenger, successfulResponse]);
+
   function revealCurrentStepErrors() {
     setRevealedErrors((current) => ({ ...current, [wizard.currentStep]: true }));
   }
 
   function handleStepSelection(stepId: string) {
+    setSuccessfulResponse(null);
     wizard.goToStep(stepId as CaseEntryWizardStepId);
   }
 
@@ -171,17 +216,28 @@ export function CaseEntryPage({ initialDraft, submitter }: CaseEntryPageProps = 
       return;
     }
 
+    setSuccessfulResponse(null);
     wizard.goNext();
-              <SessionActions />
   }
 
   function handleBack() {
+    setSuccessfulResponse(null);
     wizard.goBack();
   }
 
   async function handleSubmit() {
     revealCurrentStepErrors();
-    await wizard.submit();
+    const response = await wizard.submit();
+    if (response) {
+      setSuccessfulResponse(response);
+      setRevealedErrors({});
+      wizard.reset();
+    }
+  }
+
+  function handleStartNewCase() {
+    setSuccessfulResponse(null);
+    setShowNewCaseForm(true);
   }
 
   function renderActiveStep() {
@@ -317,6 +373,7 @@ export function CaseEntryPage({ initialDraft, submitter }: CaseEntryPageProps = 
   const frameMeta = activeStepMeta[wizard.currentStep];
   const showNavigation = wizard.currentStep !== "review";
   const showBackButton = wizard.canGoBack;
+  const shouldShowCaseForm = !isLoggedInPassenger || showNewCaseForm;
 
   return (
     <main className="case-entry-page">
@@ -327,66 +384,117 @@ export function CaseEntryPage({ initialDraft, submitter }: CaseEntryPageProps = 
         transition={{ duration: 0.4, ease: "easeOut" }}
       >
         <div className="case-entry-hero wizard-hero">
-          <header className="case-entry-header">
-            <h1>Start your compensation case</h1>
-            <p className="eyebrow">
-              Step {wizard.currentStepIndex + 1} of {wizard.steps.length}
-            </p>
-          </header>
-
-          <StepFrame
-            description={frameMeta.description}
-            label={frameMeta.label}
-            title={frameMeta.title}
-          >
-            <AnimatePresence mode="wait">
-              <motion.div
-                animate={{ opacity: 1, y: 0 }}
-                className="step-stage"
-                initial={{ opacity: 0, y: 18 }}
-                key={wizard.currentStep}
-                transition={{ duration: 0.26, ease: "easeOut" }}
-              >
-                {renderActiveStep()}
-              </motion.div>
-            </AnimatePresence>
-
-            {wizard.submitState.status === "error" && (
-              <SubmitErrorBanner error={wizard.submitState.error} />
-            )}
-
-            {showNavigation && !wizard.canGoNext && shouldShowCurrentStepErrors && (
-              <StepGuidanceBanner errors={currentStepErrors} />
-            )}
-
-            {wizard.submitState.status === "success" && (
-              <SubmitSuccessBanner submitState={wizard.submitState} />
-            )}
-
-            {(showNavigation || showBackButton) && (
-              <div className="wizard-nav">
-                <button
-                  className="secondary-button"
-                  disabled={!showBackButton}
-                  onClick={handleBack}
-                  type="button"
-                >
-                  Back
-                </button>
-
-                {showNavigation && (
-                  <button
-                    className="primary-button"
-                    disabled={!wizard.canGoNext}
-                    onClick={handleNext}
-                    type="button"
-                  >
-                    Continue to next step
+          <SessionActions />
+          {isLoggedInPassenger ? (
+            <section className="passenger-case-overview" aria-labelledby="my-cases-title">
+              <div className="new-user-heading-row">
+                <div>
+                  <p className="eyebrow">Passenger portal</p>
+                  <h2 id="my-cases-title">My Cases</h2>
+                </div>
+                <div className="new-user-heading-actions">
+                  <button className="primary-button" onClick={handleStartNewCase} type="button">
+                    Create New Case
                   </button>
-                )}
+                </div>
               </div>
-            )}
-          </StepFrame>
+              {passengerCases === null && casesError === null ? <p role="status">Loading your cases...</p> : null}
+              {casesError ? <div className="notice-banner notice-banner-error" role="alert">{casesError}</div> : null}
+              {passengerCases && passengerCases.length === 0 ? (
+                <div className="notice-banner" role="status">You do not have any cases yet.</div>
+              ) : null}
+              {passengerCases && passengerCases.length > 0 ? (
+                <div className="user-list-table-shell">
+                  <table className="user-list-table">
+                    <thead>
+                      <tr>
+                        <th scope="col">ID</th>
+                        <th scope="col">Case Date</th>
+                        <th scope="col">Flight Number</th>
+                        <th scope="col">Flight Date</th>
+                        <th scope="col">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {passengerCases.map((row) => (
+                        <tr key={row.id}>
+                          <td>{row.id}</td>
+                          <td>{row.caseDate}</td>
+                          <td>{row.flightNumber}</td>
+                          <td>{row.flightDate ?? "-"}</td>
+                          <td>{row.status}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : null}
+            </section>
+          ) : null}
+          {shouldShowCaseForm ? (
+            <>
+              <header className="case-entry-header">
+                <h1>Start your flight compensation request</h1>
+                <p className="eyebrow">
+                  Step {wizard.currentStepIndex + 1} of {wizard.steps.length}
+                </p>
+              </header>
+
+              <StepFrame
+                description={frameMeta.description}
+                label={frameMeta.label}
+                title={frameMeta.title}
+              >
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    animate={{ opacity: 1, y: 0 }}
+                    className="step-stage"
+                    initial={{ opacity: 0, y: 18 }}
+                    key={wizard.currentStep}
+                    transition={{ duration: 0.26, ease: "easeOut" }}
+                  >
+                    {renderActiveStep()}
+                  </motion.div>
+                </AnimatePresence>
+
+                {wizard.submitState.status === "error" && (
+                  <SubmitErrorBanner error={wizard.submitState.error} />
+                )}
+
+                {(wizard.submitState.status === "success" || successfulResponse) && (
+                  <SubmitSuccessBanner submitState={wizard.submitState} fallbackResponse={successfulResponse} />
+                )}
+
+                {(showNavigation || showBackButton) && (
+                  <div className="wizard-nav">
+                    <button
+                      className="secondary-button"
+                      disabled={!showBackButton}
+                      onClick={handleBack}
+                      type="button"
+                    >
+                      Back
+                    </button>
+
+                    {showNavigation && (
+                      <button
+                        className="primary-button"
+                        disabled={!wizard.canGoNext}
+                        onClick={handleNext}
+                        type="button"
+                      >
+                        Continue to next step
+                      </button>
+                    )}
+                  </div>
+                )}
+              </StepFrame>
+            </>
+          ) : (
+            <div className="notice-banner" role="status">
+              Select one of your existing cases above or click Create New Case to start another request.
+            </div>
+          )}
         </div>
       </motion.section>
     </main>
@@ -418,10 +526,17 @@ function SubmitErrorBanner({ error }: { error: CaseEntrySubmitError | null }) {
   );
 }
 
-function SubmitSuccessBanner({ submitState }: { submitState: CaseEntrySubmitState }) {
-  const message = submitState.response?.message;
-  const status = submitState.response?.status;
-  const reference = submitState.response?.caseId ?? submitState.response?.publicCaseReference ?? submitState.response?.id;
+function SubmitSuccessBanner({
+  submitState,
+  fallbackResponse,
+}: {
+  submitState: CaseEntrySubmitState;
+  fallbackResponse: CaseEntrySubmitResponse | null;
+}) {
+  const response = submitState.response ?? fallbackResponse;
+  const message = response?.message;
+  const status = response?.status;
+  const reference = response?.caseId ?? response?.publicCaseReference ?? response?.id;
 
   return (
     <div className="notice-banner notice-banner-success" role="status">
@@ -433,23 +548,3 @@ function SubmitSuccessBanner({ submitState }: { submitState: CaseEntrySubmitStat
   );
 }
 
-function StepGuidanceBanner({ errors }: { errors: Record<string, string[]> }) {
-  const validationEntries = Object.entries(errors).filter(([path]) => path !== "general" && path !== "root");
-
-  if (validationEntries.length === 0) {
-    return null;
-  }
-
-  return (
-    <div className="notice-banner" role="status">
-      <strong>Complete the highlighted fields to continue.</strong>
-      <ul>
-        {validationEntries.map(([path, messages]) => (
-          <li key={path}>
-            {formatValidationErrorLabel(path)}: {messages.join(" ")}
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}

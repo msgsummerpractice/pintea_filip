@@ -27,6 +27,11 @@ class PassengerAccountResult:
 
 
 def send_initial_password_email(*, email: str, raw_password: str) -> None:
+    print(
+        "Passenger temporary password generated for "
+        f"{email}: {raw_password}"
+    )
+
     try:
         send_mail(
             subject="Your AirAssist account credentials",

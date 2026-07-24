@@ -199,6 +199,33 @@ def test_case_create_api_creates_passenger_auth_user_and_sends_credentials(
 
 
 @pytest.mark.django_db(transaction=True)
+@patch("builtins.print")
+@patch("apps.cases.services.case_creation.calculate_compensation")
+def test_case_create_api_prints_passenger_temporary_password_to_terminal(
+    mock_calc, mock_print, mailoutbox, tmp_path, settings
+) -> None:
+    mock_calc.return_value = CompensationResult(
+        distance_km=Decimal("2000.00"), compensation_eur=400
+    )
+    settings.MEDIA_ROOT = tmp_path
+
+    response = APIClient().post(
+        "/api/cases/",
+        data={
+            "payload": json.dumps(build_payload()),
+            "boarding_pass": build_upload("boarding-pass.pdf"),
+            "identification": build_upload("passport.jpg", content_type="image/jpeg"),
+        },
+        format="multipart",
+    )
+
+    assert response.status_code == 201
+    mock_print.assert_called_once()
+    printed_message = mock_print.call_args.args[0]
+    assert printed_message.startswith("Passenger temporary password generated for ada@example.com: ")
+
+
+@pytest.mark.django_db(transaction=True)
 @patch("apps.cases.services.case_creation.calculate_compensation")
 def test_case_create_api_reuses_existing_auth_user_without_resending_password(
     mock_calc, mailoutbox, tmp_path, settings
