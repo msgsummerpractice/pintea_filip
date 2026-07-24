@@ -4,6 +4,7 @@ import { Navigate, useLocation } from "react-router-dom";
 import { getDefaultRoute } from "../api";
 import { useAuth } from "../AuthProvider";
 import type { SessionUser } from "../types";
+import { SessionLoader } from "./SessionLoader";
 
 interface ProtectedRouteProps extends PropsWithChildren {
   allow: (user: SessionUser) => boolean;
@@ -14,13 +15,7 @@ export function ProtectedRoute({ allow, children }: ProtectedRouteProps) {
   const location = useLocation();
 
   if (isLoading) {
-    return (
-      <main className="auth-shell">
-        <section className="auth-card">
-          <p role="status">Loading session...</p>
-        </section>
-      </main>
-    );
+    return <SessionLoader />;
   }
 
   if (!user) {

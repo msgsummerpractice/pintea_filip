@@ -5,6 +5,7 @@ import { ChangePasswordPage } from "../features/auth/components/ChangePasswordPa
 import { ColleagueHomePage } from "../features/auth/components/ColleagueHomePage";
 import { LoginPage } from "../features/auth/components/LoginPage";
 import { ProtectedRoute } from "../features/auth/components/ProtectedRoute";
+import { SessionLoader } from "../features/auth/components/SessionLoader";
 import { getDefaultRoute } from "../features/auth/api";
 import { useAuth } from "../features/auth/AuthProvider";
 import { CaseEntryPage } from "../features/case-entry/components/CaseEntryPage";
@@ -16,13 +17,7 @@ function PublicPassengerRoute() {
   const { isLoading, user } = useAuth();
 
   if (isLoading) {
-    return (
-      <main className="auth-shell">
-        <section className="auth-card">
-          <p role="status">Loading session...</p>
-        </section>
-      </main>
-    );
+    return <SessionLoader />;
   }
 
   if (!user || user.role === "Passenger") {

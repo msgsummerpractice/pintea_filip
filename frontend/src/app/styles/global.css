@@ -287,6 +287,66 @@ select {
   gap: 1rem;
 }
 
+.session-loader-card {
+  justify-items: center;
+  text-align: center;
+}
+
+.session-loader-copy {
+  justify-items: center;
+  max-width: 26rem;
+}
+
+.flight-loader {
+  position: relative;
+  width: min(100%, 20rem);
+  height: 5.5rem;
+}
+
+.flight-loader-path {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 2px;
+  transform: translateY(-50%);
+  background-image: radial-gradient(circle, rgba(18, 49, 59, 0.32) 1.5px, transparent 1.6px);
+  background-size: 14px 2px;
+  background-repeat: repeat-x;
+}
+
+.flight-loader-plane {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  color: var(--accent-blue-deep);
+  transform: translateY(-50%);
+  animation: flight-loader-travel 1.8s ease-in-out infinite;
+}
+
+.flight-loader-plane-icon {
+  display: block;
+  width: 2rem;
+  height: 2rem;
+  filter: drop-shadow(0 8px 14px rgba(23, 132, 214, 0.16));
+}
+
+@keyframes flight-loader-travel {
+  0% {
+    left: 0;
+    transform: translateY(-50%) translateX(0) rotate(-8deg);
+  }
+
+  50% {
+    transform: translateY(-72%) translateX(0) rotate(0deg);
+  }
+
+  100% {
+    left: calc(100% - 2rem);
+    transform: translateY(-50%) translateX(0) rotate(8deg);
+  }
+}
+
 .session-actions {
   display: flex;
   align-items: center;
