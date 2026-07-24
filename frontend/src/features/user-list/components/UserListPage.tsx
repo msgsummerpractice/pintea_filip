@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 
+import { SessionActions } from "../../auth/components/SessionActions";
 import { HttpError } from "../../../lib/http";
 import { fetchUserList } from "../api";
 import type { UserListRow } from "../types";
@@ -39,8 +41,16 @@ export function UserListPage() {
     <main className="user-list-page">
       <section className="user-list-frame" aria-labelledby="user-list-title">
         <header className="user-list-header">
-          <p className="eyebrow">System administration</p>
-          <h1 id="user-list-title">User List</h1>
+          <SessionActions />
+          <div className="new-user-heading-row">
+            <div>
+              <p className="eyebrow">System administration</p>
+              <h1 id="user-list-title">User List</h1>
+            </div>
+            <Link className="secondary-button new-user-back-link" to="/admin/users/new">
+              New User
+            </Link>
+          </div>
           <p>Review all system users, their role, and passenger-linked case counts.</p>
         </header>
 

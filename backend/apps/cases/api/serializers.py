@@ -5,8 +5,13 @@ import re
 from datetime import datetime
 from typing import Any
 
+from django.contrib.auth import get_user_model
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.utils import timezone
 from rest_framework import serializers
+
+from apps.cases.models import PassengerAuthState
 
 
 MAX_CONNECTING_FLIGHTS = 4
@@ -26,6 +31,69 @@ def get_file_extension(file_name: str) -> str:
     if "." not in file_name:
         return ""
     return file_name.rsplit(".", 1)[-1].lower()
+
+
+def normalize_login_email(value: str) -> str:
+    return value.strip().lower()
+
+
+def serialize_session_user(user) -> dict[str, object]:
+    auth_state = getattr(user, "passenger_auth_state", None)
+    if auth_state is None:
+        auth_state = PassengerAuthState.objects.filter(user=user).only("must_change_password_on_first_login").first()
+
+    role = "Passenger"
+    if user.is_superuser:
+        role = "System Admin"
+    elif user.is_staff:
+        role = "Colleague"
+
+    name = f"{user.first_name.strip()} {user.last_name.strip()}".strip() or user.email
+    return {
+        "id": user.id,
+        "email": user.email,
+        "name": name,
+        "role": role,
+        "mustChangePasswordOnFirstLogin": bool(
+            auth_state and auth_state.must_change_password_on_first_login
+        ),
+    }
+
+
+class LoginRequestSerializer(serializers.Serializer):
+    email = serializers.EmailField(max_length=254)
+    password = serializers.CharField(max_length=128)
+
+    def validate_email(self, value: str) -> str:
+        user_model = get_user_model()
+        return normalize_login_email(user_model.objects.normalize_email(value))
+
+
+class SessionUserSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    email = serializers.EmailField()
+    name = serializers.CharField()
+    role = serializers.CharField()
+    mustChangePasswordOnFirstLogin = serializers.BooleanField()
+
+
+class ChangePasswordRequestSerializer(serializers.Serializer):
+    currentPassword = serializers.CharField(max_length=128)
+    newPassword = serializers.CharField(max_length=128)
+    confirmNewPassword = serializers.CharField(max_length=128)
+
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        if attrs["newPassword"] != attrs["confirmNewPassword"]:
+            raise serializers.ValidationError(
+                {"confirmNewPassword": ["Passwords do not match."]}
+            )
+
+        try:
+            validate_password(attrs["newPassword"], user=self.context["request"].user)
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError({"newPassword": exc.messages}) from exc
+
+        return attrs
 
 
 class AirportInputSerializer(serializers.Serializer):
@@ -143,6 +211,50 @@ class UserListItemSerializer(serializers.Serializer):
     role = serializers.CharField()
     assigned_case_count = serializers.IntegerField()
     actions = serializers.DictField(child=serializers.BooleanField())
+
+
+class CreateColleagueUserRequestSerializer(serializers.Serializer):
+    firstName = serializers.CharField(max_length=150)
+    lastName = serializers.CharField(max_length=150)
+    email = serializers.EmailField(max_length=254)
+    initialPassword = serializers.CharField(max_length=128)
+
+    def validate_firstName(self, value: str) -> str:
+        normalized = value.strip()
+        if not normalized:
+            raise serializers.ValidationError("This field may not be blank.")
+        return normalized
+
+    def validate_lastName(self, value: str) -> str:
+        normalized = value.strip()
+        if not normalized:
+            raise serializers.ValidationError("This field may not be blank.")
+        return normalized
+
+    def validate_email(self, value: str) -> str:
+        user_model = get_user_model()
+        normalized = normalize_login_email(user_model.objects.normalize_email(value))
+        if user_model.objects.filter(email=normalized).exists() or user_model.objects.filter(username=normalized).exists():
+            raise serializers.ValidationError("A user with this e-mail already exists.")
+        return normalized
+
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        user_model = get_user_model()
+        candidate_user = user_model(
+            username=attrs["email"],
+            email=attrs["email"],
+            first_name=attrs["firstName"],
+            last_name=attrs["lastName"],
+            is_staff=True,
+            is_superuser=False,
+            is_active=True,
+        )
+
+        try:
+            validate_password(attrs["initialPassword"], user=candidate_user)
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError({"initialPassword": exc.messages}) from exc
+        return attrs
 
 
 class CaseCreateRequestSerializer(serializers.Serializer):

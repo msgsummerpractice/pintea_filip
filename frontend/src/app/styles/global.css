@@ -60,6 +60,128 @@ select {
   padding: 3rem 0 4rem;
 }
 
+.auth-shell {
+  width: min(calc(100% - 2rem), 34rem);
+  min-height: 100vh;
+  margin: 0 auto;
+  display: grid;
+  align-items: center;
+  padding: 3rem 0;
+}
+
+.auth-shell-wide {
+  width: min(calc(100% - 2rem), 52rem);
+}
+
+.auth-card {
+  display: grid;
+  gap: var(--space-5);
+  padding: clamp(1.5rem, 4vw, 2.5rem);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(246, 250, 252, 0.9));
+  box-shadow: var(--shadow);
+}
+
+.auth-card-wide {
+  width: 100%;
+}
+
+.auth-copy {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.auth-copy h1 {
+  margin: 0;
+  font-size: clamp(2.2rem, 5vw, 3.4rem);
+  line-height: 0.98;
+  letter-spacing: -0.04em;
+}
+
+.auth-copy p:last-child {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.auth-form {
+  display: grid;
+  gap: 1rem;
+}
+
+.session-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 0.95rem 1rem;
+  border: 1px solid rgba(23, 132, 214, 0.12);
+  border-radius: 1rem;
+  background: rgba(244, 251, 250, 0.78);
+}
+
+.session-actions-copy {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.session-actions-name,
+.session-actions-meta {
+  margin: 0;
+}
+
+.session-actions-name {
+  font-weight: 700;
+}
+
+.session-actions-meta {
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.session-actions-buttons {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.new-user-header,
+.new-user-content {
+  gap: var(--space-5);
+}
+
+.new-user-heading-row {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.new-user-back-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}
+
+.new-user-form {
+  display: grid;
+  gap: 1.25rem;
+  padding: 1.25rem;
+  border: 1px solid rgba(18, 49, 59, 0.08);
+  border-radius: 1.25rem;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.new-user-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
 .case-entry-frame {
   position: relative;
   overflow: hidden;
@@ -889,12 +1011,22 @@ select {
 }
 
 @media (max-width: 720px) {
+  .auth-shell,
+  .auth-shell-wide {
+    width: min(calc(100% - 1rem), 34rem);
+    padding: 1rem 0 2rem;
+  }
+
   .user-list-content {
     padding: 0 1rem 1rem;
   }
 
   .user-list-header {
     padding: 1.5rem 1rem 1.25rem;
+  }
+
+   .new-user-form {
+    padding: 1rem;
   }
 
   .user-list-actions {

@@ -1,10 +1,19 @@
 import { render, screen } from "@testing-library/react";
-import { RouterProvider, createMemoryRouter } from "react-router-dom";
+import { MemoryRouter, RouterProvider, createMemoryRouter } from "react-router-dom";
 
 import { HttpError } from "../../../lib/http";
 import { router as appRouter } from "../../../app/router";
+import { AuthProvider } from "../../auth/AuthProvider";
 import * as api from "../api";
 import { UserListPage } from "../components/UserListPage";
+
+function renderPage() {
+  render(
+    <MemoryRouter>
+      <UserListPage />
+    </MemoryRouter>,
+  );
+}
 
 describe("UserListPage", () => {
   afterEach(() => {
@@ -12,22 +21,38 @@ describe("UserListPage", () => {
   });
 
   test("renders the user list route", async () => {
+    vi.spyOn(window, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          id: 9,
+          email: "admin@example.com",
+          name: "Ada Admin",
+          role: "System Admin",
+          mustChangePasswordOnFirstLogin: false,
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      ),
+    );
     vi.spyOn(api, "fetchUserList").mockResolvedValue([]);
 
     const router = createMemoryRouter(appRouter.routes, {
       initialEntries: ["/admin/users"],
     });
 
-    render(<RouterProvider router={router} />);
+    render(
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>,
+    );
 
-    expect(screen.getByRole("heading", { name: /user list/i })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: /user list/i })).toBeInTheDocument();
     expect(await screen.findByText(/no users found/i)).toBeInTheDocument();
   });
 
   test("renders a loading state before users resolve", () => {
     vi.spyOn(api, "fetchUserList").mockReturnValue(new Promise(() => undefined));
 
-    render(<UserListPage />);
+    renderPage();
 
     expect(screen.getByRole("status")).toHaveTextContent(/loading users/i);
   });
@@ -44,7 +69,7 @@ describe("UserListPage", () => {
       },
     ]);
 
-    render(<UserListPage />);
+    renderPage();
 
     expect(await screen.findByRole("cell", { name: /ada admin/i })).toBeInTheDocument();
     expect(screen.getByRole("columnheader", { name: /name/i })).toBeInTheDocument();
@@ -59,7 +84,7 @@ describe("UserListPage", () => {
   test("renders the empty state", async () => {
     vi.spyOn(api, "fetchUserList").mockResolvedValue([]);
 
-    render(<UserListPage />);
+    renderPage();
 
     expect(await screen.findByText(/no users found/i)).toBeInTheDocument();
   });
@@ -69,7 +94,7 @@ describe("UserListPage", () => {
       new HttpError(403, "Forbidden", { detail: "Forbidden" }),
     );
 
-    render(<UserListPage />);
+    renderPage();
 
     expect(await screen.findByRole("alert")).toHaveTextContent(/do not have access/i);
   });
@@ -77,7 +102,7 @@ describe("UserListPage", () => {
   test("renders a generic error state for unexpected failures", async () => {
     vi.spyOn(api, "fetchUserList").mockRejectedValue(new Error("Network down"));
 
-    render(<UserListPage />);
+    renderPage();
 
     expect(await screen.findByRole("alert")).toHaveTextContent(/unable to load users right now/i);
   });

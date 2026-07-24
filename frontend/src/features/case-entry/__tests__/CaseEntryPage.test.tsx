@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { RouterProvider, createMemoryRouter } from "react-router-dom";
 
 import { router as appRouter } from "../../../app/router";
+import { AuthProvider } from "../../auth/AuthProvider";
 import { CaseEntryPage } from "../components/CaseEntryPage";
 import {
   createDraftId,
@@ -87,15 +88,32 @@ function buildValidDraft(): CaseEntryDraft {
   return draft;
 }
 
-test("renders the case entry route on the root path", () => {
+test("renders the case entry route on the root path", async () => {
+  vi.spyOn(window, "fetch").mockResolvedValue(
+    new Response(
+      JSON.stringify({
+        id: 5,
+        email: "passenger@example.com",
+        name: "Pat Passenger",
+        role: "Passenger",
+        mustChangePasswordOnFirstLogin: false,
+      }),
+      { status: 200, headers: { "content-type": "application/json" } },
+    ),
+  );
+
   const router = createMemoryRouter(appRouter.routes, {
     initialEntries: ["/"],
   });
 
-  render(<RouterProvider router={router} />);
+  render(
+    <AuthProvider>
+      <RouterProvider router={router} />
+    </AuthProvider>,
+  );
 
   expect(
-    screen.getByRole("heading", { name: /start your compensation case/i }),
+    await screen.findByRole("heading", { name: /start your compensation case/i }),
   ).toBeInTheDocument();
   expect(screen.getByRole("region", { name: /build the itinerary/i })).toBeInTheDocument();
   expect(screen.queryByText(/placeholder exists only/i)).not.toBeInTheDocument();

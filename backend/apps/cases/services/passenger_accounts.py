@@ -13,6 +13,7 @@ from django.utils.crypto import get_random_string
 
 from apps.cases.models import Passenger
 from apps.cases.models import PassengerAuthState
+from apps.cases.api.serializers import normalize_login_email
 
 
 logger = logging.getLogger(__name__)
@@ -44,7 +45,7 @@ def send_initial_password_email(*, email: str, raw_password: str) -> None:
 
 def provision_passenger_account(*, passenger: Passenger) -> PassengerAccountResult:
     user_model = get_user_model()
-    normalized_email = user_model.objects.normalize_email(passenger.email)
+    normalized_email = normalize_login_email(user_model.objects.normalize_email(passenger.email))
     matching_users = list(user_model.objects.filter(email=normalized_email))
     if len(matching_users) > 1:
         raise DatabaseError("Multiple user accounts share the same email address.")

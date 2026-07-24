@@ -15,6 +15,7 @@ from config.settings import load_environment
 def test_backend_foundation_settings_are_configured() -> None:
     assert "apps.cases" in settings.INSTALLED_APPS
     assert "http://localhost:5173" in settings.CORS_ALLOWED_ORIGINS
+    assert "http://localhost:5173" in settings.CSRF_TRUSTED_ORIGINS
     assert settings.AIRPORTGAP_API_TOKEN == ""
 
     database_settings = settings.DATABASES["default"]

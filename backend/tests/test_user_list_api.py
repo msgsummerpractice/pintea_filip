@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 import pytest
+from django.contrib.auth import authenticate
 from django.contrib.auth import get_user_model
+from django.core import mail
 from rest_framework.test import APIClient
 
 from apps.cases.models import Case
 from apps.cases.models import Passenger
+from apps.cases.models import PassengerAuthState
 
 
 @pytest.fixture
@@ -155,3 +158,182 @@ def test_assigned_case_count_ignores_unlinked_passenger_cases(admin_client):
     admin_row = next(entry for entry in response.json()["results"] if entry["email"] == "admin@example.com")
     assert linked_row["assigned_case_count"] == 0
     assert admin_row["assigned_case_count"] == 0
+
+
+@pytest.mark.django_db
+def test_admin_can_create_colleague_account(admin_client, django_capture_on_commit_callbacks):
+    payload = {
+        "firstName": "Cora",
+        "lastName": "Colleague",
+        "email": "COLLEAGUE@example.com",
+        "initialPassword": "StrongPass123!",
+    }
+
+    with django_capture_on_commit_callbacks(execute=True):
+        response = admin_client.post("/api/users/create/", payload, format="json")
+
+    assert response.status_code == 201
+    data = response.json()
+    created_user = get_user_model().objects.get(email="colleague@example.com")
+    auth_state = PassengerAuthState.objects.get(user=created_user)
+
+    assert data == {
+        "id": created_user.id,
+        "email": "colleague@example.com",
+        "role": "Colleague",
+        "message": "User account created successfully.",
+    }
+    assert created_user.username == "colleague@example.com"
+    assert created_user.first_name == "Cora"
+    assert created_user.last_name == "Colleague"
+    assert created_user.is_staff is True
+    assert created_user.is_superuser is False
+    assert created_user.is_active is True
+    assert created_user.check_password("StrongPass123!") is True
+    assert created_user.password != "StrongPass123!"
+    assert auth_state.must_change_password_on_first_login is True
+    assert len(mail.outbox) == 1
+    assert mail.outbox[0].to == ["colleague@example.com"]
+    assert "StrongPass123!" in mail.outbox[0].body
+    assert "must change this password on first login" in mail.outbox[0].body
+
+
+@pytest.mark.django_db
+def test_create_colleague_rejects_duplicate_email(admin_client):
+    get_user_model().objects.create_user(
+        username="existing@example.com",
+        email="existing@example.com",
+        password="StrongPass123!",
+    )
+
+    response = admin_client.post(
+        "/api/users/create/",
+        {
+            "firstName": "Eve",
+            "lastName": "Existing",
+            "email": "existing@example.com",
+            "initialPassword": "StrongPass123!",
+        },
+        format="json",
+    )
+
+    assert response.status_code == 400
+    assert response.json() == {"email": ["A user with this e-mail already exists."]}
+    assert get_user_model().objects.filter(email="existing@example.com").count() == 1
+    assert PassengerAuthState.objects.count() == 0
+    assert mail.outbox == []
+
+
+@pytest.mark.django_db
+def test_create_colleague_rejects_duplicate_email_with_different_case(admin_client):
+    get_user_model().objects.create_user(
+        username="existing@example.com",
+        email="existing@example.com",
+        password="StrongPass123!",
+    )
+
+    response = admin_client.post(
+        "/api/users/create/",
+        {
+            "firstName": "Eve",
+            "lastName": "Existing",
+            "email": "EXISTING@example.com",
+            "initialPassword": "StrongPass123!",
+        },
+        format="json",
+    )
+
+    assert response.status_code == 400
+    assert response.json() == {"email": ["A user with this e-mail already exists."]}
+    assert get_user_model().objects.filter(email="existing@example.com").count() == 1
+    assert PassengerAuthState.objects.count() == 0
+    assert mail.outbox == []
+
+
+@pytest.mark.django_db
+def test_create_colleague_returns_field_errors_for_invalid_payload(admin_client):
+    response = admin_client.post(
+        "/api/users/create/",
+        {
+            "firstName": "   ",
+            "lastName": "",
+            "email": "not-an-email",
+            "initialPassword": "StrongPass123!",
+        },
+        format="json",
+    )
+
+    assert response.status_code == 400
+    data = response.json()
+    assert data["firstName"] == ["This field may not be blank."]
+    assert data["lastName"] == ["This field may not be blank."]
+    assert data["email"] == ["Enter a valid email address."]
+    assert get_user_model().objects.filter(email="not-an-email").count() == 0
+    assert PassengerAuthState.objects.count() == 0
+    assert mail.outbox == []
+
+
+@pytest.mark.django_db
+def test_create_colleague_returns_password_validation_errors(admin_client):
+    response = admin_client.post(
+        "/api/users/create/",
+        {
+            "firstName": "Valid",
+            "lastName": "User",
+            "email": "valid.user@example.com",
+            "initialPassword": "123",
+        },
+        format="json",
+    )
+
+    assert response.status_code == 400
+    data = response.json()
+    assert "initialPassword" in data
+    assert get_user_model().objects.filter(email="valid.user@example.com").count() == 0
+    assert PassengerAuthState.objects.count() == 0
+    assert mail.outbox == []
+
+
+@pytest.mark.django_db
+def test_non_admin_cannot_create_colleague_account():
+    user = create_passenger_user("viewer@example.com")
+    client = APIClient()
+    client.force_authenticate(user=user)
+
+    response = client.post(
+        "/api/users/create/",
+        {
+            "firstName": "Nora",
+            "lastName": "Nope",
+            "email": "nora@example.com",
+            "initialPassword": "StrongPass123!",
+        },
+        format="json",
+    )
+
+    assert response.status_code == 403
+    assert get_user_model().objects.filter(email="nora@example.com").count() == 0
+    assert PassengerAuthState.objects.count() == 0
+    assert mail.outbox == []
+
+
+@pytest.mark.django_db
+def test_csrf_endpoint_sets_cookie(client):
+    response = client.get("/api/csrf/")
+
+    assert response.status_code == 204
+    assert "csrftoken" in response.cookies
+
+
+@pytest.mark.django_db
+def test_email_login_is_case_insensitive_for_existing_user():
+    user = get_user_model().objects.create_user(
+        username="mixed@example.com",
+        email="mixed@example.com",
+        password="StrongPass123!",
+    )
+
+    authenticated = authenticate(username="MIXED@example.com", password="StrongPass123!")
+
+    assert authenticated is not None
+    assert authenticated.pk == user.pk

@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useState } from "react";
 
+import { SessionActions } from "../../auth/components/SessionActions";
 import type { CaseEntrySubmitState } from "../hooks/useCaseEntryWizard";
 import { useCaseEntryWizard } from "../hooks/useCaseEntryWizard";
 import type {
@@ -171,6 +172,7 @@ export function CaseEntryPage({ initialDraft, submitter }: CaseEntryPageProps = 
     }
 
     wizard.goNext();
+              <SessionActions />
   }
 
   function handleBack() {

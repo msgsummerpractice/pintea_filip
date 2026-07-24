@@ -22,10 +22,60 @@ const apiBaseUrl = (() => {
     : resolvedBaseUrl;
 })();
 
+function readCookie(name: string): string | null {
+  if (typeof document === "undefined") {
+    return null;
+  }
+
+  const cookieValue = document.cookie
+    .split(";")
+    .map((entry) => entry.trim())
+    .find((entry) => entry.startsWith(`${name}=`));
+
+  if (!cookieValue) {
+    return null;
+  }
+
+  return decodeURIComponent(cookieValue.slice(name.length + 1));
+}
+
+let csrfBootstrapRequest: Promise<void> | null = null;
+
+function requiresCsrfProtection(method: string | undefined): boolean {
+  const normalizedMethod = method?.toUpperCase() ?? "GET";
+  return !["GET", "HEAD", "OPTIONS", "TRACE"].includes(normalizedMethod);
+}
+
+async function ensureCsrfCookie(): Promise<void> {
+  if (readCookie("csrftoken")) {
+    return;
+  }
+
+  if (!csrfBootstrapRequest) {
+    csrfBootstrapRequest = fetch(buildApiUrl("/csrf/"), {
+      credentials: "include",
+      headers: buildHeaders(),
+    }).then((response) => {
+      if (!response.ok) {
+        throw new Error(`Unable to initialize CSRF protection: ${response.status}`);
+      }
+    }).finally(() => {
+      csrfBootstrapRequest = null;
+    });
+  }
+
+  await csrfBootstrapRequest;
+}
+
 function buildHeaders(headers?: HeadersInit): Headers {
   const mergedHeaders = new Headers(headers);
   if (!mergedHeaders.has("Accept")) {
     mergedHeaders.set("Accept", "application/json");
+  }
+
+  const csrfToken = readCookie("csrftoken");
+  if (csrfToken && !mergedHeaders.has("X-CSRFToken")) {
+    mergedHeaders.set("X-CSRFToken", csrfToken);
   }
 
   return mergedHeaders;
@@ -52,6 +102,10 @@ export async function requestJson<TResponse>(
   path: string,
   init: RequestInit = {},
 ): Promise<TResponse> {
+  if (requiresCsrfProtection(init.method)) {
+    await ensureCsrfCookie();
+  }
+
   const response = await fetch(buildApiUrl(path), {
     ...init,
     headers: buildHeaders(init.headers),

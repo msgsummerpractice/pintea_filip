@@ -2,23 +2,36 @@ from __future__ import annotations
 
 import re
 
+from django.contrib.auth import authenticate
+from django.contrib.auth import login
+from django.contrib.auth import logout
+from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth import get_user_model
+from django.middleware.csrf import get_token
 from django.db import DatabaseError
 from django.db.models import Case as DbCase
 from django.db.models import CharField, Count, Value, When
 from rest_framework import parsers
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
+from rest_framework.authentication import SessionAuthentication
 from rest_framework.permissions import BasePermission
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.cases.api.serializers import CaseCreateRequestSerializer
+from apps.cases.api.serializers import ChangePasswordRequestSerializer
+from apps.cases.api.serializers import CreateColleagueUserRequestSerializer
+from apps.cases.api.serializers import LoginRequestSerializer
+from apps.cases.api.serializers import SessionUserSerializer
 from apps.cases.api.serializers import UserListItemSerializer
+from apps.cases.api.serializers import serialize_session_user
 from apps.cases.services.airportgap import AirportGapClient
 from apps.cases.services.airportgap import AirportGapSearchError
 from apps.cases.services.airportgap import UNAVAILABLE_MESSAGE
 from apps.cases.services.case_creation import create_case
+from apps.cases.services.colleague_accounts import create_colleague_account
+from apps.cases.models import PassengerAuthState
 from apps.cases.services.compensation import (
     CompensationCalculationError,
     InvalidAirportCodeError,
@@ -30,6 +43,88 @@ class IsSystemAdminUser(BasePermission):
     def has_permission(self, request, view) -> bool:
         user = request.user
         return bool(user and user.is_authenticated and user.is_superuser)
+
+
+class IsAuthenticatedApiUser(BasePermission):
+    message = "Authentication credentials were not provided."
+
+    def has_permission(self, request, view) -> bool:
+        user = request.user
+        return bool(user and user.is_authenticated)
+
+
+class SessionAuthenticationWithUnauthorizedStatus(SessionAuthentication):
+    def authenticate_header(self, request) -> str:
+        return "Session"
+
+
+class LoginView(APIView):
+    def post(self, request) -> Response:
+        serializer = LoginRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        user = authenticate(
+            request=request,
+            username=serializer.validated_data["email"],
+            password=serializer.validated_data["password"],
+        )
+        if user is None:
+            return Response(
+                {"detail": "Invalid e-mail or password."},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        login(request, user)
+        payload = SessionUserSerializer(serialize_session_user(user)).data
+        return Response(payload, status=status.HTTP_200_OK)
+
+
+class SessionView(APIView):
+    authentication_classes = [SessionAuthenticationWithUnauthorizedStatus]
+    permission_classes = [IsAuthenticatedApiUser]
+
+    def get(self, request) -> Response:
+        payload = SessionUserSerializer(serialize_session_user(request.user)).data
+        return Response(payload, status=status.HTTP_200_OK)
+
+
+class LogoutView(APIView):
+    authentication_classes = [SessionAuthenticationWithUnauthorizedStatus]
+    permission_classes = [IsAuthenticatedApiUser]
+
+    def post(self, request) -> Response:
+        logout(request)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class ChangePasswordView(APIView):
+    authentication_classes = [SessionAuthenticationWithUnauthorizedStatus]
+    permission_classes = [IsAuthenticatedApiUser]
+
+    def post(self, request) -> Response:
+        serializer = ChangePasswordRequestSerializer(
+            data=request.data,
+            context={"request": request},
+        )
+        serializer.is_valid(raise_exception=True)
+
+        current_password = serializer.validated_data["currentPassword"]
+        if not request.user.check_password(current_password):
+            return Response(
+                {"currentPassword": ["Current password is incorrect."]},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        request.user.set_password(serializer.validated_data["newPassword"])
+        request.user.save(update_fields=["password"])
+        PassengerAuthState.objects.update_or_create(
+            user=request.user,
+            defaults={"must_change_password_on_first_login": False},
+        )
+        update_session_auth_hash(request, request.user)
+
+        payload = SessionUserSerializer(serialize_session_user(request.user)).data
+        return Response(payload, status=status.HTTP_200_OK)
 
 
 class AdminUserListView(APIView):
@@ -56,7 +151,7 @@ class AdminUserListView(APIView):
         payload = [
             {
                 "id": user.id,
-                "name": (f"{user.first_name} {user.last_name}".strip() or user.email),
+                "name": (f"{user.first_name.strip()} {user.last_name.strip()}".strip() or user.email),
                 "email": user.email,
                 "role": user.derived_role,
                 "assigned_case_count": user.assigned_case_count,
@@ -66,6 +161,37 @@ class AdminUserListView(APIView):
         ]
         serializer = UserListItemSerializer(payload, many=True)
         return Response({"results": serializer.data}, status=status.HTTP_200_OK)
+
+
+class AdminUserCreateView(APIView):
+    permission_classes = [IsSystemAdminUser]
+
+    def post(self, request) -> Response:
+        serializer = CreateColleagueUserRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        result = create_colleague_account(
+            first_name=serializer.validated_data["firstName"],
+            last_name=serializer.validated_data["lastName"],
+            email=serializer.validated_data["email"],
+            initial_password=serializer.validated_data["initialPassword"],
+        )
+
+        return Response(
+            {
+                "id": result.user.id,
+                "email": result.user.email,
+                "role": "Colleague",
+                "message": "User account created successfully.",
+            },
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class CsrfTokenView(APIView):
+    def get(self, request) -> Response:
+        get_token(request)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class AirportSearchView(APIView):
