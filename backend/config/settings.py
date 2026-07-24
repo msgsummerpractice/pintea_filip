@@ -140,6 +140,7 @@ CORS_ALLOW_CREDENTIALS = env_bool("CORS_ALLOW_CREDENTIALS", default=True)
 CSRF_TRUSTED_ORIGINS = env_list("CSRF_TRUSTED_ORIGINS", default=CORS_ALLOWED_ORIGINS)
 
 AIRPORTGAP_API_TOKEN = env("AIRPORTGAP_API_TOKEN", default="") or ""
+AIRPORT_REFRESH_MAX_RETRIES = int(env("AIRPORT_REFRESH_MAX_RETRIES", default="3") or "3")
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="noreply@airassist.local") or "noreply@airassist.local"
 EMAIL_BACKEND = env(
     "EMAIL_BACKEND",

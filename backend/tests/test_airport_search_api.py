@@ -3,8 +3,11 @@ from __future__ import annotations
 from unittest.mock import Mock
 from unittest.mock import patch
 
+import pytest
 import requests
 from rest_framework.test import APIClient
+
+from apps.cases.models import Airport
 
 
 def build_upstream_response(payload: dict) -> Mock:
@@ -20,6 +23,33 @@ def test_airport_search_returns_empty_results_for_short_queries(mock_get: Mock) 
 
     assert response.status_code == 200
     assert response.json() == {"results": []}
+    mock_get.assert_not_called()
+
+
+@patch("apps.cases.services.airportgap.requests.get")
+@pytest.mark.django_db
+def test_airport_search_uses_database_records_before_upstream(mock_get: Mock) -> None:
+    Airport.objects.create(
+        code="OTP",
+        name="Henri Coanda International Airport",
+        city="Bucharest",
+        country="Romania",
+    )
+
+    response = APIClient().get("/api/airports/search", {"q": "bu"})
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "results": [
+            {
+                "code": "OTP",
+                "name": "Henri Coanda International Airport",
+                "city": "Bucharest",
+                "country": "Romania",
+                "display_label": "Bucharest - Henri Coanda International Airport (OTP)",
+            }
+        ]
+    }
     mock_get.assert_not_called()
 
 

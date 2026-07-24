@@ -14,6 +14,21 @@ class CaseStatus(models.TextChoices):
     INVALID = "INVALID", "Invalid"
 
 
+class Airport(models.Model):
+    code = models.CharField(max_length=10, unique=True)
+    name = models.CharField(max_length=255)
+    city = models.CharField(max_length=255)
+    country = models.CharField(max_length=255)
+    refreshed_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["city", "name", "code"]
+        indexes = [
+            models.Index(fields=["name"], name="cases_airport_name_idx"),
+            models.Index(fields=["city"], name="cases_airport_city_idx"),
+        ]
+
+
 class Passenger(models.Model):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,

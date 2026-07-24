@@ -216,7 +216,7 @@ class UserListItemSerializer(serializers.Serializer):
 class CaseListItemSerializer(serializers.Serializer):
     id = serializers.CharField()
     case_date = serializers.DateField()
-    flight_number = serializers.CharField(allow_blank=True)
+    flight_number = serializers.CharField()
     flight_date = serializers.DateField(allow_null=True)
     status = serializers.CharField()
     actions = serializers.DictField(child=serializers.BooleanField())
