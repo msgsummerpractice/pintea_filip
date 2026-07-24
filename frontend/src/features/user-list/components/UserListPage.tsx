@@ -47,9 +47,14 @@ export function UserListPage() {
               <p className="eyebrow">System administration</p>
               <h1 id="user-list-title">User List</h1>
             </div>
-            <Link className="secondary-button new-user-back-link" to="/admin/users/new">
-              New User
-            </Link>
+            <div className="new-user-heading-actions">
+              <Link className="ghost-button new-user-back-link" to="/admin/cases">
+                Case View
+              </Link>
+              <Link className="secondary-button new-user-back-link" to="/admin/users/new">
+                New User
+              </Link>
+            </div>
           </div>
           <p>Review all system users, their role, and passenger-linked case counts.</p>
         </header>

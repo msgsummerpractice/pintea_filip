@@ -8,6 +8,7 @@ import { ProtectedRoute } from "../features/auth/components/ProtectedRoute";
 import { getDefaultRoute } from "../features/auth/api";
 import { useAuth } from "../features/auth/AuthProvider";
 import { CaseEntryPage } from "../features/case-entry/components/CaseEntryPage";
+import { CaseListPage } from "../features/case-list/components/CaseListPage";
 import { NewUserPage } from "../features/user-list/components/NewUserPage";
 import { UserListPage } from "../features/user-list/components/UserListPage";
 
@@ -53,6 +54,14 @@ export const router = createBrowserRouter([
     element: (
       <ProtectedRoute allow={(user) => user.role === "Colleague"}>
         <ColleagueHomePage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/admin/cases",
+    element: (
+      <ProtectedRoute allow={(user) => user.role === "System Admin"}>
+        <CaseListPage />
       </ProtectedRoute>
     ),
   },

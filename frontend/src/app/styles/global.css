@@ -161,6 +161,12 @@ select {
   flex-wrap: wrap;
 }
 
+.new-user-heading-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
 .new-user-back-link {
   display: inline-flex;
   align-items: center;
@@ -306,6 +312,17 @@ select {
 
 .user-list-table tbody tr:nth-child(even) {
   background: rgba(255, 255, 255, 0.58);
+}
+
+.user-list-row-selected {
+  background: rgba(23, 132, 214, 0.09);
+}
+
+.case-list-link {
+  color: var(--accent-blue-deep);
+  font-weight: 700;
+  text-decoration-thickness: 0.1em;
+  text-underline-offset: 0.18em;
 }
 
 .user-list-actions {

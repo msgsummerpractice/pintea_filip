@@ -213,6 +213,15 @@ class UserListItemSerializer(serializers.Serializer):
     actions = serializers.DictField(child=serializers.BooleanField())
 
 
+class CaseListItemSerializer(serializers.Serializer):
+    id = serializers.CharField()
+    case_date = serializers.DateField()
+    flight_number = serializers.CharField(allow_blank=True)
+    flight_date = serializers.DateField(allow_null=True)
+    status = serializers.CharField()
+    actions = serializers.DictField(child=serializers.BooleanField())
+
+
 class CreateColleagueUserRequestSerializer(serializers.Serializer):
     firstName = serializers.CharField(max_length=150)
     lastName = serializers.CharField(max_length=150)

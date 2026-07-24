@@ -3,6 +3,7 @@ from django.urls import path
 from apps.cases.api.views import AdminUserCreateView
 from apps.cases.api.views import AdminUserListView
 from apps.cases.api.views import AirportSearchView
+from apps.cases.api.views import AdminCaseDeleteView
 from apps.cases.api.views import CaseCreateView
 from apps.cases.api.views import ChangePasswordView
 from apps.cases.api.views import CsrfTokenView
@@ -22,5 +23,6 @@ urlpatterns = [
     path("users/create/", AdminUserCreateView.as_view(), name="admin-user-create"),
     path("airports/search", AirportSearchView.as_view(), name="airport-search"),
     path("cases/", CaseCreateView.as_view(), name="case-create"),
+    path("cases/<str:case_id>/", AdminCaseDeleteView.as_view(), name="admin-case-delete"),
     path("compensation/calculate", CompensationCalculateView.as_view(), name="compensation-calculate"),
 ]

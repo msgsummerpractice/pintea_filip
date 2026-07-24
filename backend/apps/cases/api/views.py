@@ -19,6 +19,7 @@ from rest_framework.permissions import BasePermission
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.cases.api.serializers import CaseListItemSerializer
 from apps.cases.api.serializers import CaseCreateRequestSerializer
 from apps.cases.api.serializers import ChangePasswordRequestSerializer
 from apps.cases.api.serializers import CreateColleagueUserRequestSerializer
@@ -26,10 +27,12 @@ from apps.cases.api.serializers import LoginRequestSerializer
 from apps.cases.api.serializers import SessionUserSerializer
 from apps.cases.api.serializers import UserListItemSerializer
 from apps.cases.api.serializers import serialize_session_user
+from apps.cases.models import Case
 from apps.cases.services.airportgap import AirportGapClient
 from apps.cases.services.airportgap import AirportGapSearchError
 from apps.cases.services.airportgap import UNAVAILABLE_MESSAGE
 from apps.cases.services.case_creation import create_case
+from apps.cases.services.case_management import delete_case
 from apps.cases.services.colleague_accounts import create_colleague_account
 from apps.cases.models import PassengerAuthState
 from apps.cases.services.compensation import (
@@ -228,6 +231,32 @@ class AirportSearchView(APIView):
 class CaseCreateView(APIView):
     parser_classes = [parsers.MultiPartParser, parsers.FormParser]
 
+    def get(self, request) -> Response:
+        if not IsSystemAdminUser().has_permission(request, self):
+            return Response({"detail": "You do not have permission to perform this action."}, status=status.HTTP_403_FORBIDDEN)
+
+        cases = Case.objects.prefetch_related("flight_legs").order_by("-created_at", "-id")
+        payload = []
+        for case in cases:
+            flight_legs = list(case.flight_legs.all())
+            selected_leg = next((leg for leg in flight_legs if leg.is_problem_flight), None)
+            if selected_leg is None and flight_legs:
+                selected_leg = flight_legs[0]
+
+            payload.append(
+                {
+                    "id": case.case_id,
+                    "case_date": case.created_at.date(),
+                    "flight_number": selected_leg.flight_number if selected_leg else "",
+                    "flight_date": selected_leg.flight_date if selected_leg else None,
+                    "status": case.status,
+                    "actions": {"delete": True},
+                }
+            )
+
+        serializer = CaseListItemSerializer(payload, many=True)
+        return Response({"results": serializer.data}, status=status.HTTP_200_OK)
+
     def post(self, request) -> Response:
         try:
             serializer = CaseCreateRequestSerializer.from_multipart(request.data, request.FILES)
@@ -262,6 +291,22 @@ class CaseCreateView(APIView):
                 },
             },
             status=status.HTTP_201_CREATED,
+        )
+
+
+class AdminCaseDeleteView(APIView):
+    permission_classes = [IsSystemAdminUser]
+
+    def delete(self, request, case_id: str) -> Response:
+        case = Case.objects.select_related("passenger").filter(case_id=case_id).first()
+        if case is None:
+            return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        deleted_case_id = case.case_id
+        delete_case(case)
+        return Response(
+            {"id": deleted_case_id, "message": "Case deleted successfully."},
+            status=status.HTTP_200_OK,
         )
 
 
