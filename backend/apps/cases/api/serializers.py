@@ -136,6 +136,15 @@ class DisruptionInputSerializer(serializers.Serializer):
     incidentDescription = serializers.CharField(max_length=1000)
 
 
+class UserListItemSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    name = serializers.CharField()
+    email = serializers.EmailField()
+    role = serializers.CharField()
+    assigned_case_count = serializers.IntegerField()
+    actions = serializers.DictField(child=serializers.BooleanField())
+
+
 class CaseCreateRequestSerializer(serializers.Serializer):
     reservationNumber = serializers.CharField(max_length=50)
     gdprConsentPrimary = serializers.BooleanField()

@@ -2,14 +2,19 @@ from __future__ import annotations
 
 import re
 
+from django.contrib.auth import get_user_model
 from django.db import DatabaseError
+from django.db.models import Case as DbCase
+from django.db.models import CharField, Count, Value, When
 from rest_framework import parsers
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
+from rest_framework.permissions import BasePermission
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.cases.api.serializers import CaseCreateRequestSerializer
+from apps.cases.api.serializers import UserListItemSerializer
 from apps.cases.services.airportgap import AirportGapClient
 from apps.cases.services.airportgap import AirportGapSearchError
 from apps.cases.services.airportgap import UNAVAILABLE_MESSAGE
@@ -19,6 +24,48 @@ from apps.cases.services.compensation import (
     InvalidAirportCodeError,
     calculate_compensation,
 )
+
+
+class IsSystemAdminUser(BasePermission):
+    def has_permission(self, request, view) -> bool:
+        user = request.user
+        return bool(user and user.is_authenticated and user.is_superuser)
+
+
+class AdminUserListView(APIView):
+    permission_classes = [IsSystemAdminUser]
+
+    def get(self, request) -> Response:
+        user_model = get_user_model()
+        users = (
+            user_model.objects.annotate(
+                assigned_case_count=Count("passengers__cases", distinct=True),
+                passenger_profile_count=Count("passengers", distinct=True),
+                derived_role=DbCase(
+                    When(is_superuser=True, then=Value("System Admin")),
+                    When(is_staff=True, then=Value("Colleague")),
+                    When(passenger_profile_count__gt=0, then=Value("Passenger")),
+                    default=Value("Passenger"),
+                    output_field=CharField(),
+                ),
+            )
+            .order_by("email", "id")
+            .distinct()
+        )
+
+        payload = [
+            {
+                "id": user.id,
+                "name": (f"{user.first_name} {user.last_name}".strip() or user.email),
+                "email": user.email,
+                "role": user.derived_role,
+                "assigned_case_count": user.assigned_case_count,
+                "actions": {"edit": False, "delete": False},
+            }
+            for user in users
+        ]
+        serializer = UserListItemSerializer(payload, many=True)
+        return Response({"results": serializer.data}, status=status.HTTP_200_OK)
 
 
 class AirportSearchView(APIView):
